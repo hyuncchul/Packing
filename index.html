@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Excel 변환기 | Before → After</title>
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
+  <!-- SheetJS: 브라우저에서 Excel 읽기/쓰기 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body { background: #f0f4f8; font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; }
+
+    .hero {
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      color: white; padding: 48px 0 36px; text-align: center;
+    }
+    .hero h1 { font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
+    .hero p  { opacity: .8; font-size: 1rem; }
+
+    .card-main {
+      max-width: 700px; margin: 40px auto;
+      border: none; border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.12);
+    }
+    .card-main .card-body { padding: 40px; }
+
+    #drop-zone {
+      border: 2.5px dashed #90aad4; border-radius: 12px;
+      padding: 56px 24px; text-align: center;
+      cursor: pointer; transition: all .2s; background: #f7faff;
+    }
+    #drop-zone.hover  { border-color: #2a5298; background: #eaf0fb; }
+    #drop-zone .icon  { font-size: 3rem; margin-bottom: 12px; }
+    #drop-zone p      { color: #5a7aaa; margin: 0; }
+    #file-input       { display: none; }
+    #file-name        {
+      margin-top: 14px; font-size: .92rem;
+      color: #2a5298; font-weight: 600; min-height: 22px;
+    }
+
+    .btn-convert {
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      color: white; border: none; border-radius: 10px;
+      padding: 14px 40px; font-size: 1.05rem; font-weight: 600;
+      width: 100%; margin-top: 24px; letter-spacing: .3px; transition: opacity .2s;
+    }
+    .btn-convert:hover    { opacity: .88; color: white; }
+    .btn-convert:disabled { opacity: .5; cursor: not-allowed; }
+
+    .rules {
+      background: #eef3fb; border-radius: 10px;
+      padding: 18px 22px; margin-top: 28px;
+      font-size: .88rem; color: #3a5080;
+    }
+    .rules h6 { font-weight: 700; margin-bottom: 10px; color: #1e3c72; }
+
+    .badge-rule {
+      background: #2a5298; color: white;
+      border-radius: 5px; padding: 2px 8px; font-size: .8rem;
+    }
+
+    #progress-wrap { display: none; margin-top: 20px; }
+    #alert-box     { margin-top: 20px; display: none; }
+
+    .stat-box {
+      background: white; border-radius: 10px; border: 1px solid #d0dff0;
+      padding: 14px 20px; margin-top: 16px; font-size: .88rem; color: #3a5080;
+      display: none;
+    }
+    .stat-box .num { font-size: 1.4rem; font-weight: 700; color: #2a5298; }
+  </style>
+</head>
+<body>
+
+<!-- ───── 헤더 ───── -->
+<div class="hero">
+  <h1>📊 Excel 변환기</h1>
+  <p>Before 형식 파일을 업로드하면 After 형식으로 자동 변환합니다</p>
+  <small style="opacity:.55;">서버 불필요 · 파일은 내 브라우저에서만 처리됩니다</small>
+</div>
+
+<!-- ───── 카드 ───── -->
+<div class="container">
+  <div class="card card-main">
+    <div class="card-body">
+
+      <!-- 업로드 영역 -->
+      <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+        <div class="icon">📁</div>
+        <p><strong>클릭</strong>하거나 파일을 여기에 <strong>드래그 &amp; 드롭</strong></p>
+        <p style="font-size:.82rem;margin-top:6px;">.xlsx 형식만 지원</p>
+      </div>
+      <input type="file" id="file-input" accept=".xlsx">
+      <div id="file-name">선택된 파일 없음</div>
+
+      <!-- 변환 버튼 -->
+      <button class="btn btn-convert" id="btn-convert" disabled onclick="doConvert()">
+        변환 후 다운로드
+      </button>
+
+      <!-- 진행 표시 -->
+      <div id="progress-wrap">
+        <div class="progress mt-3" style="height:6px;">
+          <div class="progress-bar progress-bar-striped progress-bar-animated
+                       bg-primary" style="width:100%"></div>
+        </div>
+        <div style="text-align:center;margin-top:8px;font-size:.88rem;color:#5a7aaa;">
+          변환 중...
+        </div>
+      </div>
+
+      <!-- 통계 박스 -->
+      <div class="stat-box" id="stat-box">
+        <div class="row text-center">
+          <div class="col">
+            <div class="num" id="stat-before">—</div>
+            <div>변환 전 행 수</div>
+          </div>
+          <div class="col" style="font-size:1.6rem;color:#ccc;padding-top:8px;">→</div>
+          <div class="col">
+            <div class="num" id="stat-after">—</div>
+            <div>변환 후 행 수</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 알림 -->
+      <div id="alert-box" class="alert" role="alert"></div>
+
+      <!-- 변환 규칙 설명 -->
+      <div class="rules">
+        <h6>🔄 적용되는 변환 규칙</h6>
+        <div class="mb-2">
+          <span class="badge-rule">날짜 형식</span>
+          &nbsp;DELI_DATE / CFMD_DATE :
+          <code>2026-03-24 00:00:00</code> → <code>2026. 3. 24</code>
+        </div>
+        <div>
+          <span class="badge-rule">행 분리</span>
+          &nbsp;Pallet No, BATCH PROPOSAL, MOLD REQUEST, Prod Date 컬럼에서
+          <code>;</code>로 구분된 복수 값 → 각 값을 별도 행으로 분리
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ───── JavaScript ───── -->
+<script>
+// ── 상수 ──────────────────────────────────────
+const DATE_COLS   = [24, 43];          // DELI_DATE, CFMD_DATE
+const SPLIT_COLS  = [32, 33, 34, 49];  // Pallet No, BATCH PROPOSAL, MOLD REQUEST, Prod Date
+const HEADER_ROWS = 3;                 // 행 0·1·2 = 헤더
+
+// ── UI 요소 ──────────────────────────────────
+const fileInput  = document.getElementById('file-input');
+const fileNameEl = document.getElementById('file-name');
+const btnConvert = document.getElementById('btn-convert');
+const dropZone   = document.getElementById('drop-zone');
+const alertBox   = document.getElementById('alert-box');
+const progWrap   = document.getElementById('progress-wrap');
+const statBox    = document.getElementById('stat-box');
+
+let selectedFile = null;
+
+// 파일 선택
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length) selectFile(fileInput.files[0]);
+});
+
+// 드래그 앤 드롭
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('hover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('hover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('hover');
+  if (e.dataTransfer.files.length) selectFile(e.dataTransfer.files[0]);
+});
+
+function selectFile(f) {
+  if (!f.name.toLowerCase().endsWith('.xlsx')) {
+    showAlert('warning', '⚠️ .xlsx 파일만 지원합니다.');
+    return;
+  }
+  selectedFile = f;
+  fileNameEl.textContent = '✅  ' + f.name;
+  btnConvert.disabled = false;
+  alertBox.style.display = 'none';
+  statBox.style.display  = 'none';
+}
+
+// ── 날짜 변환 ─────────────────────────────────
+function fmtDate(val) {
+  if (val === null || val === undefined || val === '') return val;
+  let dt;
+  if (val instanceof Date) {
+    dt = val;
+  } else if (typeof val === 'number') {
+    // Excel 날짜 시리얼 → JavaScript Date
+    dt = new Date(Math.round((val - 25569) * 864e5));
+  } else {
+    dt = new Date(val);
+  }
+  if (isNaN(dt.getTime())) return val;
+  return `${dt.getFullYear()}. ${dt.getMonth() + 1}. ${dt.getDate()}`;
+}
+
+// ── 세미콜론 파싱 ──────────────────────────────
+function parseSemi(val) {
+  if (val === null || val === undefined || val === '') return [val];
+  const s     = String(val).trim();
+  const parts = s.split(';').map(p => p.trim()).filter(p => p !== '');
+  if (parts.length <= 1) return [val];   // 원본 유지 (trailing ';' 포함)
+  return parts;                          // 세미콜론 없는 개별 값
+}
+
+// ── 변환 메인 ─────────────────────────────────
+function transform(rows) {
+  const headers  = rows.slice(0, HEADER_ROWS);
+  const dataRows = rows.slice(HEADER_ROWS);
+  const newRows  = [];
+
+  for (const row of dataRows) {
+    // 날짜 변환 (복사본 작성)
+    const r = [...row];
+    for (const c of DATE_COLS) {
+      if (r[c] !== undefined) r[c] = fmtDate(r[c]);
+    }
+
+    // 분리 대상 파싱
+    const sv    = {};
+    let   maxN  = 1;
+    for (const c of SPLIT_COLS) {
+      sv[c] = parseSemi(r[c]);
+      if (sv[c].length > maxN) maxN = sv[c].length;
+    }
+
+    if (maxN === 1) {
+      newRows.push(r);
+    } else {
+      for (let i = 0; i < maxN; i++) {
+        const nr = [...r];
+        for (const c of SPLIT_COLS) {
+          nr[c] = i < sv[c].length ? sv[c][i] : null;
+        }
+        newRows.push(nr);
+      }
+    }
+  }
+
+  return [...headers, ...newRows];
+}
+
+// ── 변환 실행 ─────────────────────────────────
+function doConvert() {
+  if (!selectedFile) return;
+
+  btnConvert.disabled    = true;
+  progWrap.style.display = 'block';
+  statBox.style.display  = 'none';
+  alertBox.style.display = 'none';
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb   = XLSX.read(data, { type: 'array', cellDates: true });
+
+      // before 시트 또는 첫 번째 시트
+      const sheetName = wb.SheetNames.includes('before')
+                        ? 'before' : wb.SheetNames[0];
+      const ws        = wb.Sheets[sheetName];
+
+      // 2차원 배열로 변환
+      const rows    = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+      const before  = rows.length - HEADER_ROWS;
+
+      // 변환
+      const outRows = transform(rows);
+      const after   = outRows.length - HEADER_ROWS;
+
+      // 새 워크북 생성
+      const outWb = XLSX.utils.book_new();
+      const outWs = XLSX.utils.aoa_to_sheet(outRows);
+      XLSX.utils.book_append_sheet(outWb, outWs, 'after');
+
+      // 다운로드
+      const baseName = selectedFile.name.replace(/\.xlsx$/i, '');
+      XLSX.writeFile(outWb, `${baseName}_converted.xlsx`);
+
+      // 통계 표시
+      document.getElementById('stat-before').textContent = before + '행';
+      document.getElementById('stat-after').textContent  = after  + '행';
+      statBox.style.display = 'block';
+
+      showAlert('success',
+        `✅ 변환 완료! "${baseName}_converted.xlsx" 파일이 다운로드 되었습니다.`);
+
+    } catch (err) {
+      showAlert('danger', '❌ 오류: ' + err.message);
+    } finally {
+      btnConvert.disabled    = false;
+      progWrap.style.display = 'none';
+    }
+  };
+  reader.onerror = () => {
+    showAlert('danger', '❌ 파일을 읽을 수 없습니다.');
+    btnConvert.disabled    = false;
+    progWrap.style.display = 'none';
+  };
+  reader.readAsArrayBuffer(selectedFile);
+}
+
+function showAlert(type, msg) {
+  alertBox.className     = 'alert alert-' + type;
+  alertBox.textContent   = msg;
+  alertBox.style.display = 'block';
+}
+</script>
+</body>
+</html>
