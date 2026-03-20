@@ -191,19 +191,32 @@ function selectFile(f) {
 }
 
 // ── 날짜 변환 ─────────────────────────────────
+// SheetJS cellDates:true → UTC midnight Date 객체로 옴
+// getUTCFullYear/Month/Date 사용 → 어느 타임존에서도 날짜 오차 없음
 function fmtDate(val) {
   if (val === null || val === undefined || val === '') return val;
-  let dt;
+  let y, m, d;
   if (val instanceof Date) {
-    dt = val;
+    if (isNaN(val.getTime())) return val;
+    y = val.getUTCFullYear();
+    m = val.getUTCMonth() + 1;
+    d = val.getUTCDate();
   } else if (typeof val === 'number') {
-    // Excel 날짜 시리얼 → JavaScript Date
-    dt = new Date(Math.round((val - 25569) * 864e5));
+    // Excel 날짜 시리얼 fallback
+    const dt = new Date(Math.round((val - 25569) * 864e5));
+    if (isNaN(dt.getTime())) return val;
+    y = dt.getUTCFullYear();
+    m = dt.getUTCMonth() + 1;
+    d = dt.getUTCDate();
   } else {
-    dt = new Date(val);
+    // 문자열 fallback
+    const dt = new Date(val);
+    if (isNaN(dt.getTime())) return val;
+    y = dt.getUTCFullYear();
+    m = dt.getUTCMonth() + 1;
+    d = dt.getUTCDate();
   }
-  if (isNaN(dt.getTime())) return val;
-  return `${dt.getFullYear()}. ${dt.getMonth() + 1}. ${dt.getDate()}`;
+  return `${y}. ${m}. ${d}`;
 }
 
 // ── 세미콜론 파싱 ──────────────────────────────
@@ -221,16 +234,21 @@ function transform(rows) {
   const dataRows = rows.slice(HEADER_ROWS);
   const newRows  = [];
 
+  // 전체 열 수 파악 (행마다 길이가 다를 수 있으므로 최대값 사용)
+  const totalCols = Math.max(...[...headers, ...dataRows].map(r => r.length));
+
   for (const row of dataRows) {
-    // 날짜 변환 (복사본 작성)
-    const r = [...row];
+    // 행 길이를 totalCols 로 맞추고 복사 (짧은 행의 빈 셀 → null)
+    const r = Array.from({ length: totalCols }, (_, i) => row[i] ?? null);
+
+    // 날짜 변환
     for (const c of DATE_COLS) {
-      if (r[c] !== undefined) r[c] = fmtDate(r[c]);
+      if (r[c] !== null && r[c] !== undefined) r[c] = fmtDate(r[c]);
     }
 
     // 분리 대상 파싱
-    const sv    = {};
-    let   maxN  = 1;
+    const sv   = {};
+    let   maxN = 1;
     for (const c of SPLIT_COLS) {
       sv[c] = parseSemi(r[c]);
       if (sv[c].length > maxN) maxN = sv[c].length;
