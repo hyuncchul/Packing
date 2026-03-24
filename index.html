@@ -1,340 +1,2277 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Excel 변환기 | Before → After</title>
-  <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
-  <!-- SheetJS: 브라우저에서 Excel 읽기/쓰기 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Warehouse Management System</title>
   <style>
-    body { background: #f0f4f8; font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; }
-
-    .hero {
-      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-      color: white; padding: 48px 0 36px; text-align: center;
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", "Malgun Gothic", sans-serif; background: #f0f2f5; color: #333; }
+    header {
+      background: linear-gradient(135deg, #1a3a5c, #2d6a9f);
+      color: white; padding: 14px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
-    .hero h1 { font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
-    .hero p  { opacity: .8; font-size: 1rem; }
-
-    .card-main {
-      max-width: 700px; margin: 40px auto;
-      border: none; border-radius: 16px;
-      box-shadow: 0 8px 32px rgba(0,0,0,.12);
+    header h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: 1px; }
+    header span { font-size: 0.85rem; opacity: 0.8; }
+    .layout { display: flex; min-height: calc(100vh - 52px); }
+    nav { width: 210px; background: #1a2e44; padding: 20px 0; flex-shrink: 0; }
+    nav ul { list-style: none; }
+    nav ul li a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 22px; color: #b0c4de; text-decoration: none;
+      font-size: 0.92rem; transition: all 0.2s; border-left: 3px solid transparent;
     }
-    .card-main .card-body { padding: 40px; }
-
-    #drop-zone {
-      border: 2.5px dashed #90aad4; border-radius: 12px;
-      padding: 56px 24px; text-align: center;
-      cursor: pointer; transition: all .2s; background: #f7faff;
+    nav ul li a:hover, nav ul li a.active {
+      background: rgba(255,255,255,0.08); color: #fff; border-left-color: #4da6ff;
     }
-    #drop-zone.hover  { border-color: #2a5298; background: #eaf0fb; }
-    #drop-zone .icon  { font-size: 3rem; margin-bottom: 12px; }
-    #drop-zone p      { color: #5a7aaa; margin: 0; }
-    #file-input       { display: none; }
-    #file-name        {
-      margin-top: 14px; font-size: .92rem;
-      color: #2a5298; font-weight: 600; min-height: 22px;
+    nav ul li a .icon { font-size: 1.1rem; }
+    nav .nav-section {
+      color: #4a6580; font-size: 0.72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px; padding: 18px 22px 6px;
     }
-
-    .btn-convert {
-      background: linear-gradient(135deg, #1e3c72, #2a5298);
-      color: white; border: none; border-radius: 10px;
-      padding: 14px 40px; font-size: 1.05rem; font-weight: 600;
-      width: 100%; margin-top: 24px; letter-spacing: .3px; transition: opacity .2s;
+    main { flex: 1; padding: 24px; overflow-y: auto; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 16px; margin-bottom: 24px; }
+    .dash-card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 1px 6px rgba(0,0,0,0.08); border-top: 4px solid; }
+    .dash-card.blue { border-color: #2d6a9f; }
+    .dash-card.green { border-color: #27ae60; }
+    .dash-card.orange { border-color: #e67e22; }
+    .dash-card.red { border-color: #e74c3c; }
+    .dash-card .label { font-size: 0.82rem; color: #888; margin-bottom: 6px; }
+    .dash-card .value { font-size: 1.8rem; font-weight: 700; color: #1a2e44; }
+    .dash-card .sub { font-size: 0.78rem; color: #aaa; margin-top: 4px; }
+    .card { background: white; border-radius: 10px; padding: 22px; box-shadow: 0 1px 6px rgba(0,0,0,0.08); margin-bottom: 20px; }
+    .card h2 { font-size: 1rem; color: #1a2e44; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 8px; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 14px; }
+    .form-group label { display: block; font-size: 0.82rem; color: #555; margin-bottom: 5px; font-weight: 600; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 9px 12px; border: 1px solid #dde3ea;
+      border-radius: 6px; font-size: 0.9rem; color: #333;
+      background: #fafbfc; transition: border 0.2s;
     }
-    .btn-convert:hover    { opacity: .88; color: white; }
-    .btn-convert:disabled { opacity: .5; cursor: not-allowed; }
-
-    .rules {
-      background: #eef3fb; border-radius: 10px;
-      padding: 18px 22px; margin-top: 28px;
-      font-size: .88rem; color: #3a5080;
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none; border-color: #2d6a9f; background: white;
     }
-    .rules h6 { font-weight: 700; margin-bottom: 10px; color: #1e3c72; }
+    .form-group.full { grid-column: 1 / -1; }
+    .btn { padding: 9px 22px; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .btn-primary { background: #2d6a9f; color: white; }
+    .btn-primary:hover { background: #1a5287; }
+    .btn-success { background: #27ae60; color: white; }
+    .btn-success:hover { background: #1e9651; }
+    .btn-danger { background: #e74c3c; color: white; font-size: 0.8rem; padding: 5px 12px; }
+    .btn-danger:hover { background: #c0392b; }
+    .btn-warning { background: #e67e22; color: white; font-size: 0.8rem; padding: 5px 12px; }
+    .btn-warning:hover { background: #ca6f1e; }
+    .btn-secondary { background: #ecf0f1; color: #555; }
+    .btn-secondary:hover { background: #dde0e2; }
+    .btn-row { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th { background: #f0f4f8; color: #4a6580; font-weight: 700; padding: 11px 14px; text-align: left; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #dde3ea; }
+    td { padding: 11px 14px; border-bottom: 1px solid #f0f0f0; color: #333; }
+    tr:hover td { background: #fafcff; }
+    .table-wrapper { overflow-x: auto; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+    .badge-in { background: #d4edda; color: #155724; }
+    .badge-out { background: #f8d7da; color: #721c24; }
+    .badge-low { background: #fff3cd; color: #856404; }
+    .badge-ok { background: #d4edda; color: #155724; }
+    .badge-zero { background: #f8d7da; color: #721c24; }
+    .search-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .search-bar input, .search-bar select { padding: 8px 12px; border: 1px solid #dde3ea; border-radius: 6px; font-size: 0.88rem; background: #fafbfc; min-width: 160px; }
+    .search-bar input:focus, .search-bar select:focus { outline: none; border-color: #2d6a9f; }
 
-    .badge-rule {
-      background: #2a5298; color: white;
-      border-radius: 5px; padding: 2px 8px; font-size: .8rem;
+    /* Autocomplete */
+    .ac-wrapper { position: relative; }
+    .ac-list {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: white; border: 1px solid #2d6a9f;
+      border-top: none; border-radius: 0 0 6px 6px;
+      max-height: 220px; overflow-y: auto;
+      z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
+    .ac-item { padding: 8px 12px; cursor: pointer; font-size: 0.88rem; border-bottom: 1px solid #f0f0f0; }
+    .ac-item:hover, .ac-item.active { background: #eef4fb; }
+    .ac-item .pn { font-weight: 700; color: #1a2e44; }
+    .ac-item .desc { font-size: 0.78rem; color: #777; margin-top: 1px; }
+    .ac-count { padding: 5px 12px; font-size: 0.75rem; color: #999; background: #f8f9fa; border-top: 1px solid #eee; }
 
-    #progress-wrap { display: none; margin-top: 20px; }
-    #alert-box     { margin-top: 20px; display: none; }
+    /* Location */
+    .zone-row { margin-bottom: 14px; }
+    .zone-label { font-weight: 700; color: #2d6a9f; font-size: 0.85rem; padding: 3px 12px; background: #eef4fb; border-radius: 4px; display: inline-block; margin-bottom: 6px; }
+    .location-grid-zone { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .loc-cell { border: 2px solid #dde3ea; border-radius: 6px; padding: 6px 4px; text-align: center; cursor: pointer; transition: all 0.2s; background: white; }
+    .loc-cell:hover { border-color: #2d6a9f; transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
+    .loc-cell.occupied { background: #eef4fb; border-color: #2d6a9f; }
+    .loc-cell.empty-loc { background: #f9fdf9; border-color: #dce8dc; }
+    .loc-cell.low-stock { background: #fffbef; border-color: #f0c040; }
+    .loc-cell .loc-name { font-weight: 700; color: #1a2e44; font-size: 0.72rem; }
+    .loc-cell .loc-item { font-size: 0.65rem; color: #555; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .loc-cell .loc-qty { font-size: 0.72rem; font-weight: 600; margin-top: 2px; }
+    .loc-cell .loc-qty.ok { color: #27ae60; }
+    .loc-cell .loc-qty.low { color: #e67e22; }
+    .loc-cell .loc-qty.empty { color: #ccc; }
+    .legend { display: flex; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: #555; }
+    .legend-dot { width: 14px; height: 14px; border-radius: 3px; border: 2px solid; }
+    .legend-dot.occupied { background: #eef4fb; border-color: #2d6a9f; }
+    .legend-dot.empty-loc { background: #f9fdf9; border-color: #b5d5b5; }
+    .legend-dot.low { background: #fffbef; border-color: #f0c040; }
 
-    .stat-box {
-      background: white; border-radius: 10px; border: 1px solid #d0dff0;
-      padding: 14px 20px; margin-top: 16px; font-size: .88rem; color: #3a5080;
-      display: none;
-    }
-    .stat-box .num { font-size: 1.4rem; font-weight: 700; color: #2a5298; }
+    /* Toast */
+    #toast { position: fixed; bottom: 30px; right: 30px; background: #1a2e44; color: white; padding: 13px 22px; border-radius: 8px; font-size: 0.9rem; box-shadow: 0 4px 14px rgba(0,0,0,0.25); opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 9999; }
+    #toast.show { opacity: 1; }
+    .empty-state { text-align: center; padding: 40px; color: #bbb; font-size: 0.9rem; }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 8px; }
+    .page-title { font-size: 1.25rem; font-weight: 700; color: #1a2e44; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+    .recent-table th, .recent-table td { padding: 9px 12px; font-size: 0.83rem; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-overlay.show { display: flex; }
+    .modal-box { background: white; border-radius: 12px; padding: 28px; width: 460px; max-width: 95vw; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+    .modal-box h3 { margin-bottom: 16px; color: #1a2e44; }
+    .modal-box .info-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #eee; font-size: 0.88rem; }
+    .modal-box .info-row span:first-child { color: #888; }
+    .modal-box .info-row span:last-child { font-weight: 600; color: #1a2e44; }
+    .modal-close { margin-top: 20px; }
+
+    /* PN Mgmt */
+    .pn-stat { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+    .pn-stat-item { background: #eef4fb; border-radius: 8px; padding: 10px 18px; }
+    .pn-stat-item .s-label { font-size: 0.78rem; color: #666; }
+    .pn-stat-item .s-val { font-size: 1.3rem; font-weight: 700; color: #1a2e44; }
+    .import-area { border: 2px dashed #b0c4de; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 16px; color: #777; }
+    .import-area:hover { border-color: #2d6a9f; background: #f5f8fc; }
+    .pn-filter { display: flex; gap: 8px; margin-bottom: 12px; }
+    .pn-filter input { flex: 1; padding: 8px 12px; border: 1px solid #dde3ea; border-radius: 6px; font-size: 0.88rem; }
   </style>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
-<!-- ───── 헤더 ───── -->
-<div class="hero">
-  <h1>📊 Excel 변환기</h1>
-  <p>Before 형식 파일을 업로드하면 After 형식으로 자동 변환합니다</p>
-  <small style="opacity:.55;">서버 불필요 · 파일은 내 브라우저에서만 처리됩니다</small>
+<header>
+  <h1 style="display:flex;align-items:center;gap:16px;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 155" height="44" style="vertical-align:middle;">
+  <defs>
+    <clipPath id="peak-clip">
+      <rect x="0" y="0" width="155" height="155" rx="22" ry="22"/>
+    </clipPath>
+  </defs>
+  <!-- Red background -->
+  <rect x="0" y="0" width="155" height="155" rx="22" ry="22" fill="#cc1422"/>
+  <!-- Dark bottom mountain area -->
+  <path d="M0,155 L0,100 Q18,88 32,95 Q48,103 62,88 Q72,76 78,80 Q84,84 92,72 Q108,52 122,68 Q138,86 155,62 L155,155 Z" fill="#231f20" clip-path="url(#peak-clip)"/>
+  <!-- White mountain peak -->
+  <path d="M18,148 L78,14 L138,148 Z" fill="#f0f0f0" clip-path="url(#peak-clip)"/>
+  <!-- Gray shadow right side of peak -->
+  <path d="M78,14 L138,148 L108,148 Z" fill="#c0c0c0" clip-path="url(#peak-clip)"/>
+  <!-- PEAK text -->
+  <text x="172" y="116" font-family="Arial Black, Franklin Gothic Heavy, Impact, sans-serif" font-weight="900" font-size="88" fill="#231f20" letter-spacing="-1">PEAK</text>
+</svg><span>📦 Warehouse Management System</span></h1>
+  <span id="firebase-status" style="font-size:0.78rem;opacity:0.9;margin-right:14px;"></span><span id="headerTime"></span>
+</header>
+
+<div class="layout">
+  <nav>
+    <div class="nav-section">MAIN</div>
+    <ul>
+      <li><a href="#" class="active" onclick="showPage('dashboard',this)"><span class="icon">🏠</span> Dashboard</a></li>
+    </ul>
+    <div class="nav-section">TRANSACTIONS</div>
+    <ul>
+      <li><a href="#" onclick="showPage('inbound',this)"><span class="icon">📥</span> Inbound</a></li>
+      <li><a href="#" onclick="showPage('outbound',this)"><span class="icon">📤</span> Outbound</a></li>
+    </ul>
+    <div class="nav-section">MANAGEMENT</div>
+    <ul>
+      <li><a href="#" onclick="showPage('inventory',this)"><span class="icon">📊</span> Inventory</a></li>
+      <li><a href="#" onclick="showPage('location',this)"><span class="icon">🗺️</span> Location</a></li>
+      <li><a href="#" onclick="showPage('history',this)"><span class="icon">🔍</span> History</a></li>
+    </ul>
+    <div class="nav-section">SETTINGS</div>
+    <ul>
+      <li><a href="#" onclick="showPage('pnmgmt',this)"><span class="icon">🔢</span> Part No. Mgmt</a></li>
+      <li><a href="#" onclick="showPage('products',this)"><span class="icon">🗂️</span> Products</a></li>
+    </ul>
+  </nav>
+
+  <main>
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-title">🏠 Dashboard <span style="font-size:0.75em;color:#aaa;font-weight:400;">儀表板</span></div>
+      <div class="dash-grid">
+        <div class="dash-card blue"><div class="label">Total Part Numbers / 全部料號</div><div class="value" id="d-total-pn">0</div><div class="sub">Registered PNs</div></div>
+        <div class="dash-card green"><div class="label">Today Inbound / 今日入庫</div><div class="value" id="d-today-in">0</div><div class="sub">records</div></div>
+        <div class="dash-card orange"><div class="label">Today Outbound / 今日出庫</div><div class="value" id="d-today-out">0</div><div class="sub">records</div></div>
+        <div class="dash-card red"><div class="label">Low Stock / 庫存不足</div><div class="value" id="d-low-stock">0</div><div class="sub">items (below min.)</div></div>
+      </div>
+      <div class="card">
+        <h2>📋 Recent Transactions / 最近入出庫記錄</h2>
+        <div class="table-wrapper">
+          <table class="recent-table">
+            <thead><tr><th>Date/Time</th><th>Type</th><th>Part Number</th><th>Description</th><th>Qty</th><th>Manager</th></tr></thead>
+            <tbody id="recent-tbody"><tr><td colspan="6"><div class="empty-state"><div class="icon">📭</div>No records / 無記錄</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card" style="border:1px solid #e74c3c33;">
+        <h2>⚠️ Data Management / 資料管理</h2>
+        <p style="font-size:0.88rem;color:#888;margin-bottom:14px;">
+          Initialize all inventory and transaction records. <strong style="color:#e74c3c;">This action cannot be undone.</strong>
+        </p>
+        <button class="btn btn-danger" onclick="openResetModal()" style="padding:8px 20px;font-size:0.9rem;">
+          🗑️ Initialize Inventory / 初始化庫存
+        </button>
+      </div>
+    </div>
+
+    <!-- INBOUND -->
+    <div id="page-inbound" class="page">
+      <div class="page-title">📥 Inbound Registration <span style="font-size:0.75em;color:#aaa;font-weight:400;">入庫登記</span></div>
+      <div class="card">
+        <h2>📥 Inbound Entry / 入庫資料輸入</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Date * / 日期</label>
+            <input type="date" id="in-date">
+          </div>
+          <!-- Part Number with autocomplete -->
+          <div class="form-group" style="position:relative;">
+            <label>Part Number *</label>
+            <div class="ac-wrapper">
+              <input type="text" id="in-pn" placeholder="Enter or scan PN (/ auto-splits to Batch No.)" autocomplete="off"
+                     oninput="onPNInput('in')" onkeydown="onPNKeyDown(event,'in')" onfocus="onPNInput('in')">
+              <div class="ac-list" id="in-pn-list" style="display:none;"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <input type="text" id="in-desc" placeholder="Auto-fill when PN is entered" readonly style="background:#f0f0f0; font-size:0.85rem;">
+          </div>
+          <div class="form-group">
+            <label>Batch No.</label>
+            <input type="text" id="in-lot" placeholder="Enter Batch No.">
+          </div>
+          <div class="form-group" style="position:relative;">
+            <label>Customer / 客戶名稱</label>
+            <div class="ac-wrapper">
+              <input type="text" id="in-customer" placeholder="Auto-fill from PN or enter manually" autocomplete="off"
+                     oninput="onCustomerInput()" onkeydown="onCustomerKeyDown(event)" onfocus="onCustomerInput()">
+              <div class="ac-list" id="in-customer-list" style="display:none;"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Quantity * / 數量</label>
+            <input type="number" id="in-qty" placeholder="0" min="1" oninput="splitPNBatch()">
+          </div>
+          <div class="form-group">
+            <label>Unit / 單位</label>
+            <input type="text" id="in-unit" placeholder="EA, BOX, KG..." value="EA">
+          </div>
+          <div class="form-group">
+            <label>Location * / 倉位</label>
+            <div style="display:flex;gap:6px;align-items:flex-start;">
+              <div style="position:relative;flex:1;">
+                <input type="text" id="in-loc-zone" placeholder="Zone e.g. C-2" autocomplete="off"
+                       oninput="onZoneInput('in')" onkeydown="onZoneKeyDown(event,'in')" onfocus="onZoneInput('in')"
+                       style="width:100%">
+                <div class="ac-list" id="in-zone-list" style="display:none;"></div>
+              </div>
+              <select id="in-loc-pos" style="width:80px;height:38px;border:1px solid #3a3a4a;background:#1a1a2e;color:#e0e0e0;border-radius:6px;padding:0 6px;">
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Manager / 負責人</label>
+            <input type="text" id="in-manager" placeholder="Name">
+          </div>
+          <div class="form-group full">
+            <label>Remarks / 備註</label>
+            <textarea id="in-note" rows="2" placeholder="Enter remarks..."></textarea>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="clearInForm()">Reset</button>
+          <button class="btn btn-primary" onclick="registerInbound()">📥 Register Inbound</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>📋 Today's Inbound / 今日入庫清單</h2>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th>Part Number</th><th>Description</th><th>Qty</th><th>Location</th><th>Customer</th><th>Manager</th><th>Batch No.</th><th>Time</th><th>Delete</th></tr></thead>
+            <tbody id="today-in-tbody"><tr><td colspan="9"><div class="empty-state"><div class="icon">📭</div>No inbound records today</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- OUTBOUND -->
+    <div id="page-outbound" class="page">
+      <div class="page-title">📤 Outbound Issue <span style="font-size:0.75em;color:#aaa;font-weight:400;">出庫登記</span></div>
+      <div class="card">
+        <h2>📤 Outbound Entry / 出庫資料輸入</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Date * / 日期</label>
+            <input type="date" id="out-date">
+          </div>
+          <!-- Part Number with autocomplete -->
+          <div class="form-group" style="position:relative;">
+            <label>Part Number *</label>
+            <div class="ac-wrapper">
+              <input type="text" id="out-pn" placeholder="Enter or search PN..." autocomplete="off"
+                     oninput="onPNInput('out')" onkeydown="onPNKeyDown(event,'out')" onfocus="onPNInput('out')">
+              <div class="ac-list" id="out-pn-list" style="display:none;"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <input type="text" id="out-desc" placeholder="Auto-fill when PN is entered" readonly style="background:#f0f0f0; font-size:0.85rem;">
+          </div>
+          <div class="form-group">
+            <label>Batch No.</label>
+            <input type="text" id="out-lot" placeholder="Enter Batch No.">
+          </div>
+          <div class="form-group">
+            <label>Customer / 客戶名稱</label>
+            <input type="text" id="out-customer" placeholder="Enter customer name">
+          </div>
+          <div class="form-group">
+            <label>Quantity * / 數量</label>
+            <input type="number" id="out-qty" placeholder="0" min="1">
+          </div>
+          <div class="form-group">
+            <label>Unit / 單位</label>
+            <input type="text" id="out-unit" placeholder="EA, BOX, KG..." value="EA">
+          </div>
+          <div class="form-group">
+            <label>From Location / 出庫倉位</label>
+            <div style="display:flex;gap:6px;align-items:flex-start;">
+              <div style="position:relative;flex:1;">
+                <input type="text" id="out-loc-zone" placeholder="Zone e.g. C-2" autocomplete="off"
+                       oninput="onZoneInput('out')" onkeydown="onZoneKeyDown(event,'out')" onfocus="onZoneInput('out')"
+                       style="width:100%">
+                <div class="ac-list" id="out-zone-list" style="display:none;"></div>
+              </div>
+              <select id="out-loc-pos" style="width:80px;height:38px;border:1px solid #3a3a4a;background:#1a1a2e;color:#e0e0e0;border-radius:6px;padding:0 6px;">
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Destination / 出庫目的地</label>
+            <input type="text" id="out-dest" placeholder="Enter destination">
+          </div>
+          <div class="form-group">
+            <label>Manager / 負責人</label>
+            <input type="text" id="out-manager" placeholder="Name">
+          </div>
+          <div class="form-group">
+            <label>Purpose / 出庫目的</label>
+            <select id="out-purpose">
+              <option value="판매">Sale / 銷售</option>
+              <option value="반품">Return / 退貨</option>
+              <option value="이동">Transfer / 倉庫移轉</option>
+              <option value="폐기">Disposal / 廢棄</option>
+              <option value="샘플">Sample / 樣品</option>
+              <option value="기타">Others / 其他</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Current Stock / 現有庫存</label>
+            <input type="text" id="out-current-stock" placeholder="-" readonly style="background:#f0f0f0; font-weight:bold; color:#e74c3c;">
+          </div>
+          <div class="form-group full">
+            <label>Remarks / 備註</label>
+            <textarea id="out-note" rows="2" placeholder="Enter remarks..."></textarea>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="clearOutForm()">Reset</button>
+          <button class="btn btn-success" onclick="registerOutbound()">📤 Register Outbound</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>📋 Today's Outbound / 今日出庫清單</h2>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th>Part Number</th><th>Description</th><th>Batch No.</th><th>Customer</th><th>Qty</th><th>Destination</th><th>Purpose</th><th>Manager</th><th>Time</th><th>Delete</th></tr></thead>
+            <tbody id="today-out-tbody"><tr><td colspan="10"><div class="empty-state"><div class="icon">📭</div>No outbound records today</div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVENTORY -->
+    <div id="page-inventory" class="page">
+      <div class="page-title">📊 Inventory Status <span style="font-size:0.75em;color:#aaa;font-weight:400;">庫存狀態</span></div>
+      <div class="search-bar">
+        <input type="text" id="inv-search" placeholder="🔍 Search Part Number / Description" oninput="renderInventory()">
+        <select id="inv-filter" onchange="renderInventory()">
+          <option value="all">All / 全部</option>
+          <option value="ok">Normal / 正常</option>
+          <option value="low">Low / 不足</option>
+          <option value="zero">Out of Stock / 缺貨</option>
+        </select>
+        <button class="btn btn-secondary" onclick="renderInventory()">Refresh</button>
+        <button class="btn btn-secondary" onclick="exportInventoryExcel()" style="background:#217346;color:#fff;border-color:#217346;">📥 Export Excel</button>
+      </div>
+      <div class="card">
+        <h2>📦 Inventory List / 庫存清單</h2>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th>Part Number</th><th>Description</th><th>Batch No.</th><th>Category</th><th>Stock</th><th>Unit</th><th>Min Stock</th><th>Location</th><th>Status</th></tr></thead>
+            <tbody id="inv-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOCATION -->
+    <div id="page-location" class="page">
+      <div class="page-title">🗺️ Location Map <span style="font-size:0.75em;color:#aaa;font-weight:400;">產品位置</span></div>
+
+      <!-- SAP 파일 위치 조회 카드 -->
+      <div class="card" style="border:1px solid #2d6a9f44;">
+        <h2>📂 SAP File Location Lookup / SAP檔案庫位查詢</h2>
+        <p style="font-size:0.86rem;color:#888;margin-bottom:14px;">
+          Upload a SAP Excel file (.xls / .xlsx). The system will look up the warehouse location for each Part Number (Column G)
+          and insert a <strong>WH Location</strong> column before Column G. The file will be saved with <strong>"_Location"</strong> added to its name.
+        </p>
+        <div id="sap-drop-area" style="border:2px dashed #2d6a9f;border-radius:10px;padding:24px;text-align:center;cursor:pointer;margin-bottom:12px;transition:border-color .2s;"
+             onclick="document.getElementById('sap-file-input').click()"
+             ondragover="event.preventDefault();this.style.borderColor='#4a90d9'"
+             ondragleave="this.style.borderColor='#2d6a9f'"
+             ondrop="handleSapDrop(event)">
+          <div style="font-size:2rem;margin-bottom:8px;">📄</div>
+          <div style="color:#aaa;font-size:0.9rem;">Click or drag & drop SAP Excel file here<br><span style="font-size:0.8rem;">Supports .xls / .xlsx</span></div>
+          <input type="file" id="sap-file-input" accept=".xls,.xlsx" style="display:none" onchange="processSapFile(this.files[0])">
+        </div>
+        <div id="sap-status" style="font-size:0.85rem;color:#888;min-height:20px;"></div>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot occupied"></div> In Stock / 有庫存</div>
+        <div class="legend-item"><div class="legend-dot low"></div> Low Stock / 庫存不足</div>
+        <div class="legend-item"><div class="legend-dot empty-loc"></div> Empty / 空置</div>
+      </div>
+      <div id="location-areas"></div>
+    </div>
+
+    <!-- HISTORY -->
+    <div id="page-history" class="page">
+      <div class="page-title">🔍 Transaction History <span style="font-size:0.75em;color:#aaa;font-weight:400;">交易記錄</span></div>
+      <div class="card">
+        <h2>🔎 Search Filters / 搜尋條件</h2>
+        <div class="form-grid">
+          <div class="form-group"><label>Start Date / 開始日期</label><input type="date" id="hist-start"></div>
+          <div class="form-group"><label>End Date / 結束日期</label><input type="date" id="hist-end"></div>
+          <div class="form-group">
+            <label>Type / 類型</label>
+            <select id="hist-type"><option value="all">All / 全部</option><option value="입고">Inbound / 入庫</option><option value="출고">Outbound / 出庫</option></select>
+          </div>
+          <div class="form-group"><label>Part Number / Description</label><input type="text" id="hist-product" placeholder="Enter PN or Description"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="clearHistSearch()">Reset</button>
+          <button class="btn btn-primary" onclick="renderHistory()">🔍 Search</button>
+          <button class="btn btn-secondary" onclick="exportHistoryExcel()" style="background:#217346;color:#fff;border-color:#217346;">📥 Export Excel</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>📋 Transaction History / 入出庫記錄</h2>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th>No.</th><th>Date/Time</th><th>Type</th><th>Part Number</th><th>Description</th><th>Qty</th><th>Location/Destination</th><th>Manager</th><th>Remarks</th></tr></thead>
+            <tbody id="hist-tbody"><tr><td colspan="9"><div class="empty-state"><div class="icon">🔍</div>Set search conditions and click Search</div></td></tr></tbody>
+          </table>
+        </div>
+        <div style="margin-top:12px; font-size:0.83rem; color:#888;" id="hist-count"></div>
+      </div>
+    </div>
+
+    <!-- PART NUMBER MANAGEMENT -->
+    <div id="page-pnmgmt" class="page">
+      <div class="page-title">🔢 Part Number Management <span style="font-size:0.75em;color:#aaa;font-weight:400;">料號管理</span></div>
+      <div class="card">
+        <h2>📊 Summary / 統計</h2>
+        <div class="pn-stat">
+          <div class="pn-stat-item"><div class="s-label">Total Part Numbers / 全部料號</div><div class="s-val" id="pn-total-count">0</div></div>
+          <div class="pn-stat-item"><div class="s-label">Registered Customers / 已登錄客戶</div><div class="s-val" id="pn-customer-count">0</div></div>
+          <div class="pn-stat-item"><div class="s-label">Last Updated / 最後更新</div><div class="s-val" id="pn-last-update" style="font-size:0.9rem;">-</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>📤 Bulk Update via Excel / 批量更新</h2>
+        <p style="font-size:0.88rem; color:#666; margin-bottom:14px;">
+          Reads <strong>Part No</strong>, <strong>Description</strong>, <strong>Customer</strong> column data from Excel file to update.<br>
+          Format: .xlsx (uses first sheet, header row required)
+        </p>
+        <div class="import-area" id="importDropArea" onclick="document.getElementById('pn-file-input').click()">
+          <div style="font-size:2rem; margin-bottom:8px;">📁</div>
+          <div>Click or drag & drop an Excel file here</div>
+          <div style="font-size:0.8rem; margin-top:4px; color:#aaa;">Supported format: .xlsx</div>
+          <input type="file" id="pn-file-input" accept=".xlsx" style="display:none" onchange="importExcelPN(event)">
+        </div>
+        <div style="font-size:0.82rem; color:#555; margin-bottom:10px;">
+          Or paste CSV directly (header: Part No,Description,Customer):
+        </div>
+        <textarea id="pn-paste-area" rows="5" placeholder="Part No,Description,Customer&#10;1I000116E,CLIP 43.0X5.40 5.50 installation,TSMC&#10;17B05059001LE,J/A BGA 11.5X9.5 1.01T,ECOTECH" style="width:100%; padding:10px; border:1px solid #dde3ea; border-radius:6px; font-size:0.85rem; font-family:monospace;"></textarea>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="document.getElementById('pn-paste-area').value=''">Reset</button>
+          <button class="btn btn-primary" onclick="importCSVPN()">📋 Apply CSV Paste</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>➕ Add Single Part Number / 新增料號</h2>
+        <div class="form-grid">
+          <div class="form-group"><label>Part Number *</label><input type="text" id="new-pn" placeholder="e.g. 17B05059001LE"></div>
+          <div class="form-group"><label>Description *</label><input type="text" id="new-desc" placeholder="e.g. J/A BGA 11.5X9.5 1.01T"></div>
+          <div class="form-group"><label>Customer / 客戶名稱</label><input type="text" id="new-customer" placeholder="e.g. TSMC, ASE KHH..."></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="clearNewPNForm()">Reset</button>
+          <button class="btn btn-primary" onclick="addSinglePN()">➕ Add</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>📋 Part Number List / 料號清單</h2>
+        <div class="pn-filter">
+          <input type="text" id="pn-search" placeholder="🔍 Search PN / Description / Customer" oninput="renderPNList()" style="flex:2;">
+          <select id="pn-customer-filter" onchange="renderPNList()" style="min-width:160px; padding:8px 10px; border:1px solid #dde3ea; border-radius:6px; font-size:0.88rem; background:#fafbfc;">
+            <option value="">All Customers / 全部客戶</option>
+          </select>
+          <button class="btn btn-secondary" onclick="exportPNasCSV()">📥 Export CSV</button>
+        </div>
+        <div style="font-size:0.82rem; color:#888; margin-bottom:10px;" id="pn-list-count"></div>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th>#</th><th>Part Number</th><th>Description</th><th>Customer</th><th>Action</th></tr></thead>
+            <tbody id="pn-list-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRODUCTS -->
+    <div id="page-products" class="page">
+      <div class="page-title">🗂️ Product Management <span style="font-size:0.75em;color:#aaa;font-weight:400;">產品管理</span></div>
+      <div class="card">
+        <h2>➕ Register Product / 登錄產品</h2>
+        <div class="form-grid">
+          <div class="form-group" style="position:relative;">
+            <label>Part Number *</label>
+            <div class="ac-wrapper">
+              <input type="text" id="prod-pn" placeholder="Enter or search PN..." autocomplete="off"
+                     oninput="onPNInput('prod')" onkeydown="onPNKeyDown(event,'prod')" onfocus="onPNInput('prod')">
+              <div class="ac-list" id="prod-pn-list" style="display:none;"></div>
+            </div>
+          </div>
+          <div class="form-group"><label>Description</label><input type="text" id="prod-desc-field" placeholder="Auto-fill" readonly style="background:#f0f0f0; font-size:0.85rem;"></div>
+          <div class="form-group"><label>Category / 分類</label><input type="text" id="prod-category" placeholder="Electronics, Mechanical, Consumables..."></div>
+          <div class="form-group"><label>Unit / 單位</label><input type="text" id="prod-unit" placeholder="EA, BOX, KG..." value="EA"></div>
+          <div class="form-group"><label>Min Stock Qty / 最低庫存</label><input type="number" id="prod-min" placeholder="10" min="0" value="10"></div>
+          <div class="form-group"><label>Default Location / 預設倉位</label><div style="position:relative"><input type="text" id="prod-location" placeholder="e.g. C-1-01" autocomplete="off" oninput="onLocationInput('prod-loc')" onkeydown="onLocationKeyDown(event,'prod-loc')" onfocus="onLocationInput('prod-loc')"><div class="ac-list" id="prod-loc-location-list" style="display:none;"></div></div></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="clearProdForm()">Reset</button>
+          <button class="btn btn-primary" onclick="registerProduct()">Register Product</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>📦 Registered Product List / 已登錄產品清單</h2>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th>Part Number</th><th>Description</th><th>Category</th><th>Unit</th><th>Min Stock</th><th>Location</th><th>Action</th></tr></thead>
+            <tbody id="prod-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
 </div>
 
-<!-- ───── 카드 ───── -->
-<div class="container">
-  <div class="card card-main">
-    <div class="card-body">
+<!-- Location Detail Modal -->
+<div class="modal-overlay" id="locModal">
+  <div class="modal-box">
+    <h3 id="locModal-title">Location Detail / 位置詳情</h3>
+    <div id="locModal-content"></div>
+    <div class="modal-close"><button class="btn btn-secondary" onclick="closeModal()">Close</button></div>
+  </div>
+</div>
 
-      <!-- 업로드 영역 -->
-      <div id="drop-zone" onclick="document.getElementById('file-input').click()">
-        <div class="icon">📁</div>
-        <p><strong>클릭</strong>하거나 파일을 여기에 <strong>드래그 &amp; 드롭</strong></p>
-        <p style="font-size:.82rem;margin-top:6px;">.xlsx 형식만 지원</p>
+
+<!-- Location Move Modal -->
+<div class="modal-overlay" id="moveModal">
+  <div class="modal-box" style="width:420px;">
+    <h3>🔄 Move Product / 移動商品</h3>
+    <div style="background:#f4f6fa;border-radius:8px;padding:12px 16px;margin-bottom:18px;">
+      <div style="font-size:0.82rem;color:#888;margin-bottom:4px;">Product / 商品</div>
+      <div style="font-weight:700;font-size:1rem;" id="move-pn-display">-</div>
+      <div style="font-size:0.82rem;color:#666;margin-top:2px;" id="move-desc-display">-</div>
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:14px;align-items:flex-start;">
+      <div style="flex:1;">
+        <div style="font-size:0.82rem;color:#888;margin-bottom:6px;">From / 從</div>
+        <div style="font-weight:600;color:#e74c3c;font-size:0.95rem;" id="move-from-display">-</div>
       </div>
-      <input type="file" id="file-input" accept=".xlsx">
-      <div id="file-name">선택된 파일 없음</div>
-
-      <!-- 변환 버튼 -->
-      <button class="btn btn-convert" id="btn-convert" disabled onclick="doConvert()">
-        변환 후 다운로드
-      </button>
-
-      <!-- 진행 표시 -->
-      <div id="progress-wrap">
-        <div class="progress mt-3" style="height:6px;">
-          <div class="progress-bar progress-bar-striped progress-bar-animated
-                       bg-primary" style="width:100%"></div>
-        </div>
-        <div style="text-align:center;margin-top:8px;font-size:.88rem;color:#5a7aaa;">
-          변환 중...
-        </div>
-      </div>
-
-      <!-- 통계 박스 -->
-      <div class="stat-box" id="stat-box">
-        <div class="row text-center">
-          <div class="col">
-            <div class="num" id="stat-before">—</div>
-            <div>변환 전 행 수</div>
+      <div style="font-size:1.4rem;color:#888;padding-top:18px;">→</div>
+      <div style="flex:1;">
+        <div style="font-size:0.82rem;color:#888;margin-bottom:6px;">To / 到 *</div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <div style="position:relative;flex:1;">
+            <input type="text" id="move-loc-zone" placeholder="Zone" autocomplete="off"
+                   oninput="onZoneInput('move')" onkeydown="onZoneKeyDown(event,'move')" onfocus="onZoneInput('move')"
+                   style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;">
+            <div class="ac-list" id="move-zone-list" style="display:none;"></div>
           </div>
-          <div class="col" style="font-size:1.6rem;color:#ccc;padding-top:8px;">→</div>
-          <div class="col">
-            <div class="num" id="stat-after">—</div>
-            <div>변환 후 행 수</div>
-          </div>
+          <select id="move-loc-pos" style="width:68px;height:34px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;padding:0 4px;">
+          </select>
         </div>
       </div>
-
-      <!-- 알림 -->
-      <div id="alert-box" class="alert" role="alert"></div>
-
-      <!-- 변환 규칙 설명 -->
-      <div class="rules">
-        <h6>🔄 적용되는 변환 규칙</h6>
-        <div class="mb-2">
-          <span class="badge-rule">날짜 형식</span>
-          &nbsp;DELI_DATE / CFMD_DATE :
-          <code>2026-03-24 00:00:00</code> → <code>2026. 3. 24</code>
-        </div>
-        <div>
-          <span class="badge-rule">행 분리</span>
-          &nbsp;Pallet No, BATCH PROPOSAL, MOLD REQUEST, Prod Date 컬럼에서
-          <code>;</code>로 구분된 복수 값 → 각 값을 별도 행으로 분리
-        </div>
-      </div>
-
+    </div>
+    <div style="margin-bottom:18px;">
+      <div style="font-size:0.82rem;color:#888;margin-bottom:6px;">Qty to Move / 移動數量 *</div>
+      <input type="number" id="move-qty" min="1" placeholder="0"
+             style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;">
+      <div style="font-size:0.78rem;color:#aaa;margin-top:4px;">Available: <span id="move-available">0</span></div>
+    </div>
+    <div class="modal-close" style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="closeMoveModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmMove()" style="background:#2d6a9f;">✅ Move</button>
     </div>
   </div>
 </div>
 
-<!-- ───── JavaScript ───── -->
+<!-- PN Edit Modal -->
+<div class="modal-overlay" id="pnEditModal">
+  <div class="modal-box">
+    <h3>✏️ Edit Part Number / 修改料號</h3>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:0.82rem; color:#888; margin-bottom:4px;">Part Number</div>
+      <div id="pnEditPN" style="font-weight:700; font-size:1rem; color:#1a2e44; padding:8px 12px; background:#f0f4f8; border-radius:6px;"></div>
+    </div>
+    <div class="form-group" style="margin-bottom:14px;">
+      <label>Description</label>
+      <input type="text" id="pnEditDesc" style="width:100%; padding:9px 12px; border:1px solid #dde3ea; border-radius:6px; font-size:0.9rem;">
+    </div>
+    <div class="form-group" style="margin-bottom:14px;">
+      <label>Customer / 客戶名稱</label>
+      <div class="ac-wrapper">
+        <input type="text" id="pnEditCustomer" autocomplete="off" placeholder="Enter or search customer"
+               style="width:100%; padding:9px 12px; border:1px solid #dde3ea; border-radius:6px; font-size:0.9rem;"
+               oninput="onEditCustomerInput()" onkeydown="onEditCustomerKeyDown(event)">
+        <div class="ac-list" id="pnEditCustomer-list" style="display:none;"></div>
+      </div>
+    </div>
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
+      <button class="btn btn-secondary" onclick="closePNEditModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePNEdit()">💾 Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
 <script>
-// ── 상수 ──────────────────────────────────────
-const DATE_COLS   = [24, 43];          // DELI_DATE, CFMD_DATE
-const SPLIT_COLS  = [32, 33, 34, 49];  // Pallet No, BATCH PROPOSAL, MOLD REQUEST, Prod Date
-const HEADER_ROWS = 3;                 // 행 0·1·2 = 헤더
+// ==============================
+// EMBEDDED PN DATA (from Excel)
+// ==============================
+const EXCEL_PN_CUSTOMER = {"1I000116E": "", "1I000114E": "TSMC", "1I000115E": "TSMC", "17B05059001LE": "ECOTECH", "17B05059002LE": "TAITON INC.", "17B05059003LE": "", "1M999286000E": "TSMC", "17B05045001LE": "ASE KHH", "17B05041001LE": "SEC (ONYANG)", "1M999472000E": "ASE TEST", "1M999472002E": "SPIL (ZK)", "17B05098001LE": "", "17B05077001LE": "QUALCOMM(S)", "17B05077002LE": "", "17B05078001LE": "QUALCOMM(S)", "17B05078002LE": "", "17B13010001LE": "INFINEON", "17B05029001LE": "ATT (T3)", "1M999540000E": "AMD (C)", "1M999540001E": "ASE TEST", "1M999540002E": "SPIL", "17B05085001LE": "AMD (C)", "17B05085002LE": "SPIL", "17B05068001LE": "RENESAS (PNG)", "17R01004001LE": "RENESAS (PNG)", "17B05069001LE": "RENESAS (PNG)", "17R01005001LE": "RENESAS (PNG)", "17B05019001LE": "ATP3", "17B05067001LE": "ATP3", "17B05067002LE": "RENESAS (PNG)", "17R01002001LE": "RENESAS (PNG)", "17B05066001LE": "ATP3", "17B05066002LE": "RENESAS (PNG)", "17R01003001LE": "RENESAS (PNG)", "17B05070001LE": "ATP3", "17B05070002LE": "RENESAS (PNG)", "17R01006001LE": "RENESAS (PNG)", "17B08005002LE": "ATP3", "17B08005003LE": "", "17B05071001LE": "ATP3", "17B05071002LE": "RENESAS (PNG)", "17B08006001LE": "ATP3", "17B05050001LE": "ASE KHH", "17B05058001LE": "InvenSense Taiwan", "17B05035001LE": "ATP3", "17B12012001LE": "ATP3", "17B05072001LE": "ATP3", "17B05072002LE": "ATX SUZHOU", "17B05072003LE": "JSCC", "17B05060001LE": "ATP3", "17B05060002LE": "Hanmi CO. LTD", "17B05060003LE": "", "17B05023002LE": "ATP", "17B05023001LE": "ATP1", "17B05033001LE": "ASE TEST", "1M999560000E": "ASE TEST", "1M999560002E": "SPIL", "17R01001001LE": "ATP3", "17B05022001LE": "ATP1", "17B05026001LE": "ATP1", "1M999471000E": "ASE TEST", "1M999471002E": "SPIL", "17B05084001LE": "XINTEC Line C", "17B05004001LE": "XINTEC Line C", "17B05005001LE": "XINTEC Line C", "17B05006001LE": "XINTEC Line C", "17B05007001LE": "XINTEC Line C", "17B05008001LE": "XINTEC Line C", "17B05009001LE": "XINTEC Line C", "1M999317000E": "ASE TEST", "1M999317001E": "SPIL", "1M999600000EB": "SPIL (ZK)", "17B05074001LE": "ASE TEST", "17B05074003LE": "Qualcomm Taiwan", "17B05074004LE": "QUALCOMM(S)", "17B05074006LE": "SPIL", "1M999151000E": "ASE TEST", "1M999151001E": "SPIL", "17B05075001LE": "ASE TEST", "17B05075003LE": "QUALCOMM(S)", "17B05075005LE": "SPIL", "1M999159000E": "ASE TEST", "1M999159001E": "Qualcomm Taiwan", "1M999159002E": "QUALCOMM(S)", "1M999159003E": "SPIL (ZK)", "17B05097001LE": "", "1M999524000E": "SPIL", "17B05036001LE": "ATP3", "17B05081001LE": "ATP", "17B05081002LE": "MICROCHIP BKK", "1M999361000E": "ASE KHH", "1M999361001E": "KYEC(T)", "1M999361002E": "TSMC", "1M999354000E": "KYEC(T)", "1M999432000E": "TSMC-P010", "1M999432001E": "ATK 4", "1M999432002E": "ASE KHH", "1M999427000E": "TSMC", "1M999433000EB": "TSMC-P010", "17B05093001LE": "", "17B05093002LE": "", "1M999463000E": "AVNET(J)", "1M999463001E": "SPIL", "17B05090001LE": "", "1M999299000E": "SPIL", "1M999299001E": "XILINX (U)", "17B05094001LE": "", "1M999254000E": "ECOTECH", "1M999254001E": "KYEC(T)", "1M999254002E": "SPIL", "1M999221000E": "ECOTECH", "1M999221001E": "KYEC(T)", "1M999221002E": "TSMC", "17B12006001LE": "QUALCOMM", "17B12006002LE": "WNC Corporation", "17B05042001LE": "INFINEON (S)", "17B05042002LE": "", "1M999598000E": "SPIL (ZK)", "17B05083001LE": "ASE KHH", "1M999561000EB": "SPIL", "1M999510000E": "ASE KHH", "1M999510001E": "KYEC(T)", "1M999510002E": "SPIL", "17B12005001LE": "ASE TEST", "17B12001001LE": "ASE TEST", "17B12002001LE": "ASE TEST", "17B12004001LE": "ASE TEST", "17B05046001LE": "ATP3", "17B05046002LE": "TI (S)", "17B05046003LE": "TI (T)", "17B05046005LE": "TOP UNION", "17B05017001LE": "ATP3", "17B05032001LE": "ASE TEST", "17B05032003LE": "SPIL", "17B07007001LE": "", "17B05016001LE": "ATP3", "17B05063001LE": "ASE TEST", "17B05048001LE": "ASE KOREA", "17B05048002LE": "ASE TEST", "17B05048003LE": "LINGSEN", "17B05049001LE": "ATP3", "17B08002001LE": "ATP3", "1M999591000E": "ASE TEST", "1M999591002E": "SPIL", "1M999777000E": "SIGURD (PEI-SHING)", "17B05096001LE": "", "1M999609000EB": "ASE TEST", "1M999609001EB": "SPIL", "17B05015001LE": "ATC", "17B05015002LE": "", "17B05092001LE": "", "17B05092002LE": "", "17B05028001LE": "ASE KHH", "17B05028002LE": "INFINEON", "17B05028003LE": "ASE KHH", "17B08003001LE": "ATP3", "1M999893001E": "ASE TEST", "1M999893003E": "SPIL", "17B05043001LE": "Omni Logistics (T)", "1M999911001E": "ASE TEST", "1M999911003E": "SPIL", "17B12003001LE": "ASE TEST", "1M999786000EB": "kinsus(ABF)", "17B05031001LE": "ATP3", "17B05031002LE": "HUATIAN XIAN", "17B05052001LE": "ASE KHH", "17B05091001LE": "", "17B05095001LE": "", "17B05012001LE": "Ams-OSRAM", "17B05012002LE": "Ams-OSRAM", "17B05011001LE": "Ams-OSRAM", "17B05011002LE": "Ams-OSRAM", "17B05003001LE": "Ams-OSRAM", "17B05030001LE": "ATP1", "17B08001001LE": "ATP1", "17B05034001LE": "ATP1", "17B05076001LE": "ASE TEST", "17B05040001LE": "ASE TEST", "1M999170000E": "ASE TEST", "1M999170002E": "QUALCOMM", "1M999508000E": "AVNET SGP.", "1M999508001E": "ECOTECH", "1M999508002E": "KYEC(T)", "1M999508003E": "SPIL", "17B05001001LE": "ASE TEST", "17B05038001LE": "Omni Logistics (T)", "17B05002001LE": "Omni Logistics (T)", "17B05080001LE": "ATP3", "17B05044001LE": "Omni Logistics (T)", "1M999562000E": "ASE TEST", "1M999562002E": "SPIL", "1M999355000E": "ASE KHH", "17B05039001LE": "ASE KHH", "17B05073001LE": "ATK 4", "17B05073002LE": "SPIL", "17B05061001LE": "QUALCOMM(S)", "17B05062001LE": "ASE KHH", "17B05062002LE": "SPIL", "1M999785000EB": "ATX SHA", "1M999785001EB": "ECOTECH", "1M999785002EB": "MICRON (S)", "1M999785003EB": "OSE", "1M999785004EB": "PALTEK", "1M999785005EB": "TAITON INC.", "17B05014001LE": "INFINEON", "17B08007001LE": "ON SEMI", "1M999599000E": "ASE TEST", "17B05025001LE": "ATP1", "17B05065001LE": "ASE KHH", "17B05054001LE": "ATP1", "17B07002001LE": "ATP1", "17B05037001LE": "ATP1", "17B07003001LE": "ATP1", "17L01001001LE": "MICROCHIP BKK", "17B07005001LE": "ASE KHH", "17R01007001LE": "", "17B05018001LE": "ATP1", "17B05018002LE": "", "17B05064001LE": "ASE KHH", "17B05018003LE": "", "17B07001001LE": "ATP1", "17B05020001LE": "ASE TEST", "17B05021001LE": "ATP1", "17B08004001LE": "ASE TEST", "17B05057001LE": "ASE KHH", "17B05057003LE": "ASE KHH", "17B05057004LE": "", "17B05051001LE": "Omni Logistics (T)", "1M999394000E": "ASE TEST", "1M999394002E": "SPIL", "17B05056001LE": "ASE TEST", "17B05024001LE": "ATP1", "17B07006001LE": "ATP3", "17B05053001LE": "ATP1", "17B05047001LE": "ATP1", "17B05047002LE": "ON SEMI TARLAC", "17B05047005LE": "ON SEMI TARLAC", "17B05055001LE": "ATP1", "17B07004001LE": "ASE KHH", "17B07004002LE": "ATP3", "17B08008001LE": "ONSEMI USA", "1M999788000E": "ASE KHH", "1M999788001EB": "KYEC(T)", "17B42002001LE": "", "17B42002002LE": "", "17B42001001LE": "", "17B42001002LE": "", "17B12021001LE": "", "1M999144000EB": "Amkor-K5", "1M999165000EB": "TSMC-P010", "1M999167000EB": "TSMC-P010", "17B12025001LE": "", "1M999178000E": "KYEC(T)", "1M999178001EB": "LSI Corporation USA", "1M999178002E": "TSMC-P010", "17B12010001LE": "AVAGO (S)", "17B12010002LE": "LSI Corporation USA", "17B12010003LE": "TSMC", "17B12010004LE": "", "17B12010005LE": "", "17B12010006LE": "", "17B12009001LE": "TSMC", "17B12009002LE": "KYEC(T)", "17B12009003LE": "", "17BP9005001LE": "", "1M999185000EB": "TOMOE (FEDEX)", "1M999185001EB": "TSMC-P010", "17B12008001LE": "LSI Corporation USA", "17B12008002LE": "", "17B12007001LE": "LSI Corporation USA", "17B12007003LE": "", "17B12007004LE": "", "17B12007005LE": "", "17B12007006LE": "", "17B12007007LE": "", "1M999183000E": "TOMOE (FEDEX)", "1M999141000E": "TSMC FAB07", "1M999321000E": "TSMC FAB07", "1M999225000EB": "ASE (S)", "1M999225001EB": "LSI Corporation USA", "1M999216000EB": "LSI Corporation USA", "1M999216001EB": "TSMC", "1M999161000EB": "TSMC-P010", "17B12014001LE": "", "17B12014002LE": "", "1M999327000E": "ASE (S)", "1M999327001E": "LSI Corporation USA", "1M999327002E": "TSMC-P010", "17B12028001LE": "", "1M999145001E": "AVAGO (SG)", "1M999203000EB": "TSMC", "1M999319000E": "TSMC FAB07", "17B13265001G2LE": "ASE CL", "1M999302000E": "TSMC-P010", "1M999496000EB": "ASE KHH", "1M999496002E": "SFA PHILS", "1M999496001E": "ASE KHH", "1M999162000EB": "MARVELL (S)", "1M999162001EB": "TSMC-P010", "1M999190000E": "TSMC", "1M999168000EB": "TSMC FAB07", "1M999186000E": "TSMC", "17B12020001LE": "", "1M999146000EB": "ATK 4", "1M999388000EB": "ATK 4", "1M999388001EB": "MICROSEMI CA", "1M999509000E": "STM CATANIA", "1M999222000E": "TSMC", "1M999334000EB": "SPIL SUZ", "1M999334001EB": "TSMC", "17B13006001LE": "PEAK HK W/H", "1M999233000E": "TSMC-P010", "17B08538004LEB": "ASE TEST", "1M999311000EB": "ASE KHH", "1M999431000E": "AMD (C)", "17B12029001LE": "", "1M999147000E": "TSMC-P010", "17BP9011001LE": "", "1M999515000E": "TSMC", "1M999515001E": "TOMOE (FEDEX)", "1M999323000E": "AMD (C)", "17B12016001LE": "", "1M999143000E": "TSMC-P010", "1M999565000EB": "ASE TEST", "1M999565001EB": "SCS", "1M999565003EB": "MARVELL", "1M999434000EB": "KYEC(T)", "1M999434001EB": "SIGURD (PEI-SHING)", "1M999434002EB": "ASE KHH", "1M999434003EB": "TSMC", "17BP9009001LE": "SIGURD (CHU-TUNG)", "1M999290000EB": "ALCHIP", "1M999290001E": "SIGURD (CHU-TUNG)", "1M999160000EB": "TSMC-P010", "1M999250000E": "TSMC-P010", "1M999250001EB": "ASE TEST", "17B06003001LE": "", "17B06003002LE": "", "17B06003003LE": "", "17BP9002001LE": "", "17BP9002002LE": "", "1M999404000E": "TSMC", "1M999404001E": "ASE KHH", "1M999280000E": "KYEC(T)", "1M999280001E": "SPIL", "1M999280002E": "TSMC-P010", "17BP60123006LE": "ASE KHH", "17BP60123007LE": "SPIL", "17BP9012001LE": "TSMC", "1M999423001EB": "ASE KHH", "1M999188000EB": "Amkor-K5", "1M999188002EB": "TSMC FAB30", "1M999189000EB": "Amkor-K5", "1M999189002EB": "STATS CHIPPAC KOREA.", "1M999189003EB": "TSMC FAB30", "1M999454000E": "TSMC", "1M999455000EB": "TSMC", "1M999309000EB": "Amkor-K5", "1M999309002EB": "STATS CHIPPAC KOREA.", "1M999309003EB": "TSMC", "1M999205000E": "LSI Corporation USA", "1M999205001E": "TSMC", "1M999407000E": "INTEL PG5.1", "17B13239001G2LE": "TSMC FAB30", "1M999556000EB": "KYEC(T)", "1M999556001EB": "TSMC", "1M999226000E": "TSMC FAB02", "17BP9013001LE": "", "1M999465000E": "TSMC", "1M999392000E": "TSMC", "1M999392001E": "TOMOE (FEDEX)", "1M999220000EB": "TSMC-P010", "1M999223000E": "TSMC-P010", "1M999266000EB": "KYEC(T)", "1M999266001EB": "TSMC", "1M999266002EB": "ASE KHH", "1M999389000E": "ATX SHA", "1M999389001E": "TSMC-P010", "1M999477000EB": "KYEC(T)", "1M999477001EB": "TSMC-P010", "17B12017001LE": "TeraPower", "17B12017002LE": "", "1M999164000E": "ASE KHH", "1M999164001E": "TSMC", "1M999164002E": "SPIL", "1M999164003EB": "", "17BP9004001LE": "", "1M999267000EB": "Amkor-K5", "1M999267001EB": "Annapurna Labs (US)", "1M999267002EB": "TOMOE TOKYO", "1M999267004EB": "", "1M999267005EB": "ASE (S)", "1M999267006EB": "ASE TEST", "1M999267009EB": "ECOTECH", "1M999267010EB": "INTEL (36420-H)", "1M999267013EB": "MARVELL (S)", "1M999267014EB": "TERAPOWER(TWN)", "1M999267015EB": "TSMC", "1M999282000E": "TSMC FAB07", "1M999285000E": "TSMC-P010", "17B12011001LE": "", "17B12019002LE": "", "17B12018001LE": "", "17B12018002LE": "", "17B12015001LE": "", "1M999229000EB": "LSI Corporation USA", "1M999229001EB": "ATK 4", "1M999268001EB": "ECOTECH", "1M999268002EB": "KYEC(T)", "1M999268003EB": "SPIL", "1M999268004EB": "TSMC-P010", "1M999274000E": "KYEC(T)", "1M999303000E": "ATK 4", "1M999238000EB": "TSMC-P010", "1M999316000E": "TSMC-P010", "1M999316001E": "KYEC(T)", "1M999275000E": "ASE KHH", "1M999275002E": "STATS CHIPPAC KOREA.", "1M999275003E": "TSMC", "1M999275005E": "LSI Corporation USA", "1M999292000EB": "SPIL", "1M999297000E": "KYEC(T)", "17B13251001G2LEB": "TSMC", "17B13251002G2LE": "KYEC(T)", "1M999251000E": "TSMC-P010", "1M999256000E": "KYEC(T)", "1M999256001EB": "LSI Corporation USA", "1M999256003EB": "ASE KHH", "1M999256004E": "TSMC", "1M999256006E": "SPIL", "17B02001001LE": "", "1M999201001E": "TSMC-P010", "17B05010001LE": "Ams-OSRAM", "17B05013001LE": "Ams-OSRAM", "17BP6590007G1E": "SPIL DF", "17BP6134000G2LEB": "XVIEW HK", "17BP6134004G2LE": "TI (T)", "1M999181000EB": "ASE KHH", "1M999181003EB": "TI (T)", "1M999181004E": "TIEM", "1M999181001EB": "ASE KHH", "17BP6856012G2LE": "ASE TEST", "17B06627008G2LEB": "ASE TEST", "17B06627019G2LE": "ASE TEST", "1M999968000EB": "JSCC", "1M999968001EB": "V-TEST (SH)", "1M999968002E": "HUATIAN XIAN", "1M999968003E": "AMD (C)", "17BP60066001G2LEB": "ATK 4", "17BP60066002G2LEB": "ASE (S)", "1M999584000E": "ASE KHH", "1M999584001E": "AMKOR TECHNOLOGY", "1M999584002E": "SPIL", "1M999895000EB": "ASE TEST", "1M999895001EB": "SPIL", "1M999895002EB": "TI (T)", "1M999895003EB": "TIPI", "1M999895001E": "ATK 4", "1M999895004E": "STATS CHIPPAC KOREA.", "1M999474000E": "ASE KHH", "1M999245000EB": "AMKOR TECHNOLOGY", "1M999245001EB": "ATK 4", "1M999245002EB": "SPIL", "1M999375000EB": "ASE KHH", "1M999375001E": "TOMOE (FEDEX)", "1M999375002E": "TASCO BERHAD", "17B06002001LE": "ASE CL", "1M999380000E": "SPIL", "1M999443000EB": "ASE KHH", "1M999443001EB": "TI (DALLAS TX)", "1M999443003E": "SPIL SUZ", "17BP6004004G2LE": "AMD (M) TF", "1M999243000EB": "AMKOR TECHNOLOGY", "1M999243001EB": "ASE TEST", "1M999243002E": "kinsus(ABF)", "1M999243003E": "ASE CL", "1M999243004E": "NANYA(T)", "1M999243005E": "SPIL EL", "1M999243006E": "SIGURD (PEI-SHING)", "1M999243007E": "UNIMICRON HSIN-FENG", "1M999240000EB": "AMKOR TECHNOLOGY", "1M999240001EB": "SIGURD (PEI-SHING)", "17B06891012G2LE": "NANYA(T)", "1M999622000E": "kinsus(ABF)", "17BP60050005G2LE": "NANYA(T)", "17BP60171001G2LE": "kinsus(ABF)", "1M999460000E": "NANYA(T)", "17BP6123012G2LEB": "AMD (M) TF", "1M999244000EB": "AMKOR TECHNOLOGY", "1M999244001EB": "NANYA(T)", "1M999244002EB": "ASE TEST", "1M999244003EB": "ASE (S)", "1M999244004EB": "AVAGO (M)", "17BP6098007G2LEB": "SPIL", "1M999246000EB": "AMKOR TECHNOLOGY", "1M999246001EB": "ASE KHH", "1M999261000E": "kinsus(ABF)", "1M999308000EB": "ASE KHH", "1M999308001E": "BROACOM C/O (LAB)", "1M999308001EB": "ASE CL", "1M999308002E": "TIPI", "1M999308002EB": "AVAGO (M)", "1M999308003EB": "IIS", "17B39003001LE": "", "1M999324000E": "SPIL", "1M999135000E": "", "17B39002001LE": "", "1M999191000EB": "ASE KHH", "1M999191001EB": "ECOTECH", "1M999287000EB": "ASE KHH", "1M999378000EB": "ASE KHH", "1M999378001E": "STATS CHIPPAC KOREA.", "17B12023001LE": "", "17B12026001LE": "", "17B12022001LE": "", "17B12022002LE": "", "17B12022003LE": "", "17B12024001LE": "", "17B12027001LE": "", "1M999337000EB": "ASE KHH", "1M999337001EB": "ASE TEST", "17BP9003002G2LE": "MICRON (S)", "17B22002001LE": "", "17B22002002LE": "", "17B22002003LE": "", "1M999155000E": "MICRON TAIWAN", "1M999155001E": "MICRON XI AN", "17B08012001LE": "", "1M999338001EB": "ASE TEST", "1M999338002E": "ST Calamba", "1M999376000EB": "ASE KHH", "1M999376001E": "TOMOE (FEDEX)", "1M999376001EB": "KYEC(T)", "1M999212000EB": "TSMC", "1M999166000EB": "TSMC", "17B22001001LE": "TAITON INC.", "17B22001002LE": "Micron Semiconductor Malaysia Sdn. Bhd.", "1M999207000E": "MICRON TAIWAN", "1M999207001EB": "ASE KHH", "1M999207002E": "", "1M999179000E": "MICRON TAIWAN", "17B08010001LE": "", "1M999359000E": "POWERTECH (T)", "1M999362000EB": "MICRON BOISE", "1M999466000E": "TSMC", "1M999272000E": "TSMC", "17BP9001001LE": "", "17BP9001002LE": "", "1M999328000E": "TSMC", "1M999357000E": "TSMC", "1M999456000E": "TSMC", "1M999451000E": "TSMC", "1M999142000E": "TSMC(AP6B)", "1M999363000EB": "ASE KHH", "1M999363001EB": "MICRON TAIWAN", "1M999283000E": "TSMC", "1M999263000E": "TSMC", "1M999331000E": "TSMC", "1M999214000EB": "TSMC", "1M999184000EB": "TSMC", "1M999184002E": "KYEC(Tong-Luo)", "1M999213000EB": "KYEC(Tong-Luo)", "1M999213001EB": "TSMC", "1M999248000E": "ASE TEST", "17BP9200001LE": "ASE TEST", "1M999339000EB": "ASE KHH", "1M999498001E": "MICRON TAIWAN", "1M999498004E": "MICRON XI AN", "1M999507000E": "MICRON XI AN", "1M999153000E": "TSMC FAB02", "17BP6169001G2LEB": "AMKOR TECHNOLOGY", "17BP6169002G2LE": "ASE KHH", "17BP6169003G2LE": "ASE CL", "17BP6169006G2LE": "SPIL (CHO)", "17BP9201001LE": "FUTAIHUA", "17BP9201002LE": "", "17BP9201003LE": "", "1M999154000EB": "Shenzhen Lixun IMP.", "1M999154001EB": "TSMC FAB02", "1M999187000EB": "TSMC", "1M999247000E": "ASE TEST", "1M999192000E": "ASE TEST", "1M999192002E": "LATTICE PH.", "1M999192003E": "OMNI ALL IN (S)", "1M999527000EB": "TSMC", "1M999428000EB": "ASE KHH", "1M999279000E": "ASE KHH", "17B13001001LE": "ASE TEST", "1M999252000E": "ASE TEST", "1M999252001E": "STM MALTA", "1M999252003E": "STM MALTA", "1M999255000E": "STM MALTA", "1M999313000E": "ASE TEST", "1M999313001EB": "ASE TEST", "1M999313002E": "STM MALTA", "1M999148000E": "kinsus(ABF)", "1M999172000E": "ST Calamba", "1M999429000EB": "ATK 4", "1M999429001E": "ASE KHH", "1M999429002E": "STM ITALY", "1M999200000E": "MICRON TAIWAN", "1M999180000E": "MICRON (S)", "1M999180001E": "MICRON TAIWAN", "1M999180002E": "", "1M999169000E": "MICRON TAIWAN", "1M999169001E": "MICRON XI AN", "1M999217000E": "ASE CL", "1M999217001E": "ATK 4", "17B22003001LE": "MICRON TAIWAN", "17B22003002LE": "", "1M999310000EB": "MICRON (S)", "1M999310001EB": "ASE KHH", "1M999310003EB": "JSCK", "1M999305000E": "MICRON XI AN", "1M999194000EB": "MICRON (S)", "1M999194002EB": "MICRON TAIWAN", "17B08617002LE": "", "1M999265000EB": "MICRON (S)", "1M999264000E": "MICRON XI AN", "1M999176000E": "MICRON TAIWAN", "1M999176001E": "MICRON XI AN", "17BP6222004G2LEB": "ASE KHH", "17BP6222005G2LE": "SPIL(ZX)", "1M999163000EB": "TSMC", "1M999276000E": "MICRON (S)", "1M999276001E": "MICRON TAIWAN", "1M999346000E": "TSMC", "17B08539003LE": "", "17B08539001LE": "TSMC", "17B02002001LE": "", "1M999202000EB": "ASE TEST", "1M999202001EB": "SCS", "1M999202002EB": "LATTICE PH.", "1M999502000EB": "ASE KHH", "1M999502001EB": "ASE KOREA", "1M999502002E": "ASE CL", "1M999502003EB": "ASE TEST", "1M999502004EB": "STM (F)", "1M999502005E": "ASE KOREA", "17B08009001LE": "", "17B08011002LE": "", "17B12030001LE": "", "17B05079001LE": "ASE CL", "1M999491000EB": "ASE TEST", "1M999492000EB": "ASE KHH", "17B05082001LE": "ASE TEST", "1M999157000EB": "ASE CL", "1M999174000E": "ASE CL", "1M999449000EB": "ASE TEST", "1M999449001E": "ASE TEST", "1M999449001EB": "STM (F)", "1M999382000EB": "ASE KHH", "17BP9008002LEB": "ASE KHH", "17BP9008004LE": "ASE TEST", "1M999237000E": "ASE KHH", "1M999273001E": "UTL 2", "17BP9010001LE": "", "1M999139000E": "", "1M999462000E": "ASE KHH", "1M999462001E": "SPIL DF", "17BP6250001G2LEB": "KYEC(T)", "17BP6250004G2LE": "ASE CL", "17BP6250005G2LE": "ASE TEST", "17BP6250006G2LE": "SIGURD (PEI-SHING)", "1M999464001E": "ASE KHH", "1M999464002E": "UTL 2", "1M999350000EB": "", "nan": "TSMC", "17B05041002LE": "", "1M999472001E": "", "1M999540003E": "", "17B08005001LE": "", "17B05033002LE": "", "1M999560001E": "", "17B05022002LE": "", "17B05026002LE": "", "1M999471001E": "", "1M999471003E": "", "17B05074002LE": "", "17B05074005LE": "", "1M999151002E": "", "17B05075002LE": "", "17B05075004LE": "", "1M999524001E": "", "1M999446000E": "", "1M999221003E": "", "1M999397000E": "", "17B12005002LE": "", "17B12001002LE": "", "17B12002002LE": "", "17B12004002LE": "", "17B05046004LE": "", "17B05032002LE": "", "1M999591001E": "", "1M999591003E": "", "1M999893002E": "", "1M999911002E": "", "17B12003002LE": "", "17B05030002LE": "", "17B05076002LE": "", "1M999170001E": "", "1M999170003E": "", "1M999170004E": "", "17B05001002LE": "", "1M999562001E": "", "1M999599001E": "", "17B05054002LE": "", "17B05020002LE": "", "17B08004002LE": "", "1M999394001E": "", "17B05056002LE": "", "17B05055002LE": "", "1M999216002EB": "", "1M999224000E": "", "1M999161001EB": "", "1M999203001EB": "", "1M999606000E": "", "1M999358000EB": "", "1M999434001E": "", "1M999434004EB": "", "1M999404002E": "", "1M999425000EB": "", "17BP9006001LE": "", "1M999423000EB": "TSMC", "1M999423001E": "", "1M999423002EB": "", "1M999188001EB": "", "1M999188003EB": "", "1M999189001EB": "", "1M999189004EB": "", "1M999455001EB": "", "1M999455002EB": "", "1M999309001EB": "", "1M999309004EB": "", "1M999309005EB": "", "17B13239002G2LE": "", "1M999556002EB": "", "1M999266001E": "", "1M999266003EB": "", "1M999477001E": "", "1M999164004E": "", "1M999164005E": "", "1M999267003E": "", "1M999267003EB": "", "1M999267007EB": "", "1M999267011EB": "", "1M999267012EB": "", "1M999267016EB": "", "1M999267017EB": "", "1M999285001E": "", "1M999229003E": "", "1M999268002E": "", "1M999275001EB": "", "1M999275004E": "", "1M999256002EB": "", "1M999256005E": "", "1M999181002EB": "", "17BP6856013G2LE": "", "17B06627018G2LEB": "", "1M999584003E": "", "17BP6129009G2LEB": "", "1M999380001E": "", "17BP6004017G2LE": "", "17BP6176007G2LE": "", "17BP6176014G2LE": "", "1M999242000E": "", "1M999622001E": "", "1M999622002E": "", "1M999852007E": "", "17BP60171002G2LE": "", "17B06947007G2LE": "", "17BP6123010G2LE": "", "17BP6098006G2LE": "", "17BP6098011G2LE": "", "1M999166001EB": "", "1M999166002EB": "", "1M999207003E": "", "1M999328001E": "", "1M999363002EB": "", "1M999363003EB": "", "1M999184001EB": "", "1M999213001E": "", "1M999213002EB": "", "1M999248001E": "", "1M999339001EB": "", "1M999498000E": "", "1M999498002E": "", "1M999498003E": "", "1M999153001E": "", "1M999154002EB": "", "1M999154003EB": "", "1M999247001E": "", "1M999192001E": "", "1M999252002E": "", "1M999180003E": "", "1M999180004E": "", "1M999310002EB": "MICRON TAIWAN", "1M999310004EB": "", "1M999310005EB": "", "1M999194001E": "", "1M999194001EB": "", "1M999194003EB": "", "1M999194004EB": "", "1M999265001E": "", "1M999265001EB": "", "1M999265002EB": "", "1M999265003EB": "", "1M999265004EB": "", "1M999176002E": "", "1M999276002E": "", "1M999276003E": "", "1M999449002E": "", "1M999462002E": ""};
+const CUSTOMER_LIST = ["ALCHIP", "AMD (C)", "AMD (M) TF", "AMKOR TECHNOLOGY", "ASE (S)", "ASE CL", "ASE KHH", "ASE KOREA", "ASE TEST", "ATC", "ATK 4", "ATP", "ATP1", "ATP3", "ATT (T3)", "ATX SHA", "ATX SUZHOU", "AVAGO (M)", "AVAGO (S)", "AVAGO (SG)", "AVNET SGP.", "AVNET(J)", "Amkor-K5", "Ams-OSRAM", "Annapurna Labs (US)", "BROACOM C/O (LAB)", "ECOTECH", "FUTAIHUA", "HUATIAN XIAN", "Hanmi CO. LTD", "IIS", "INFINEON", "INFINEON (S)", "INTEL (36420-H)", "INTEL PG5.1", "InvenSense Taiwan", "JSCC", "JSCK", "KYEC(T)", "KYEC(Tong-Luo)", "LATTICE PH.", "LINGSEN", "LSI Corporation USA", "MARVELL", "MARVELL (S)", "MICROCHIP BKK", "MICRON (S)", "MICRON BOISE", "MICRON TAIWAN", "MICRON XI AN", "MICROSEMI CA", "Micron Semiconductor Malaysia Sdn. Bhd.", "NANYA(T)", "OMNI ALL IN (S)", "ON SEMI", "ON SEMI TARLAC", "ONSEMI USA", "OSE", "Omni Logistics (T)", "PALTEK", "PEAK HK W/H", "POWERTECH (T)", "QUALCOMM", "QUALCOMM(S)", "Qualcomm Taiwan", "RENESAS (PNG)", "SCS", "SEC (ONYANG)", "SFA PHILS", "SIGURD (CHU-TUNG)", "SIGURD (PEI-SHING)", "SPIL", "SPIL (CHO)", "SPIL (ZK)", "SPIL DF", "SPIL EL", "SPIL SUZ", "SPIL(ZX)", "ST Calamba", "STATS CHIPPAC KOREA.", "STM (F)", "STM CATANIA", "STM ITALY", "STM MALTA", "Shenzhen Lixun IMP.", "TAITON INC.", "TASCO BERHAD", "TERAPOWER(TWN)", "TI (DALLAS TX)", "TI (S)", "TI (T)", "TIEM", "TIPI", "TOMOE (FEDEX)", "TOMOE TOKYO", "TOP UNION", "TSMC", "TSMC FAB02", "TSMC FAB07", "TSMC FAB30", "TSMC(AP6B)", "TSMC-P010", "TeraPower", "UNIMICRON HSIN-FENG", "UTL 2", "V-TEST (SH)", "WNC Corporation", "XILINX (U)", "XINTEC Line C", "XVIEW HK", "kinsus(ABF)"];
+const EXCEL_PN_DATA = {"1I000116E": "CLIP 43.0X5.40 5.50 installation", "1I000114E": "ENDTAB CLIP 43.00X5.40 5.50", "1I000115E": "ENDTAB CLIP 43.0X5.40 5.50 w/2D barcode", "17B05059001LE": "J/A BGA 11.5X9.5 1.01T", "17B05059002LE": "J/A BGA 11.5X9.5 1.01T", "17B05059003LE": "J/A BGA 11.5X9.5 1.01T", "1M999286000E": "J/A BGA 11.5X9.5 1.01T", "17B05045001LE": "J/A BGA 2.5X2.5 0.86T", "17B05041001LE": "J/A BGA 7.5X13.3 1.1T", "1M999472000E": "J/A BGA 7X6 0.545T", "1M999472002E": "J/A BGA 7X6 0.545T", "17B05098001LE": "J/A CSP 8.1X8.1 0.99T/A", "17B05077001LE": "J/A CSP 8.5X6.5 1.05T", "17B05077002LE": "J/A CSP 8.5X6.5 1.05T", "17B05078001LE": "J/A CSP 9.0X6.5 1.05T", "17B05078002LE": "J/A CSP 9.0X6.5 1.05T", "17B13010001LE": "J/A FBGA 9X11 1.04T", "17B05029001LE": "J/A FC-BGA 25X25 1.00T", "1M999540000E": "J/A FC-BGA 25X35 0.75T", "1M999540001E": "J/A FC-BGA 25X35 0.75T", "1M999540002E": "J/A FC-BGA 25X35 0.75T", "17B05085001LE": "J/A FC-BGA 25X35 0.75T", "17B05085002LE": "J/A FC-BGA 25X35 0.75T", "17B05068001LE": "J/A LGA 2.41X3.00 1.38T", "17R01004001LE": "J/A LGA 2.41X3.00 1.38T", "17B05069001LE": "J/A LGA 2.41X3.00 1.50T", "17R01005001LE": "J/A LGA 2.41X3.00 1.50T", "17B05019001LE": "J/A LGA 2.5X2.0 0.81T", "17B05067001LE": "J/A LGA 2.5X2.5 1.50T", "17B05067002LE": "J/A LGA 2.5X2.5 1.50T", "17R01002001LE": "J/A LGA 2.5X2.5 1.50T", "17B05066001LE": "J/A LGA 3.0X3.0 1.15T", "17B05066002LE": "J/A LGA 3.0X3.0 1.15T", "17R01003001LE": "J/A LGA 3.0X3.0 1.15T", "17B05070001LE": "J/A LGA 3X3 1.50T", "17B05070002LE": "J/A LGA 3X3 1.50T", "17R01006001LE": "J/A LGA 3X3 1.50T", "17B08005002LE": "J/A LGA 4.4X8.2 2.92T", "17B08005003LE": "J/A LGA 4.4X8.2 2.92T/A", "17B05071001LE": "J/A LGA 4.5X4.0 1.55T", "17B05071002LE": "J/A LGA 4.5X4.0 1.55T", "17B08006001LE": "J/A LGA 6.2X4.2 2.42T", "17B05050001LE": "J/A LGA 6.2X7.4 1.15T", "17B05058001LE": "J/A MEMS 2.680X5.173 1.56T", "17B05035001LE": "J/A MEMS 2X2 0.95T", "17B12012001LE": "J/A MEMS 2X2 1.25T", "17B05072001LE": "J/A MEMS 3X3 2.22T", "17B05072002LE": "J/A MEMS 3X3 2.22T", "17B05072003LE": "J/A MEMS 3X3 2.22T", "17B05060001LE": "J/A MLF 2X2 1.30T", "17B05060002LE": "J/A MLF 2X2 1.30T", "17B05060003LE": "J/A MLF 2X2 1.30T", "17B05023002LE": "J/A MLF 7X7 0.85T", "17B05023001LE": "J/A MLF 7X7 0.85T", "17B05033001LE": "J/A MLF 7X7 0.85T", "1M999560000E": "J/A MLF 9X9 0.85T", "1M999560002E": "J/A MLF 9X9 0.85T", "17R01001001LE": "J/A MLF-2 5X5 0.85T", "17B05022001LE": "J/A MLF-2 5X5 0.85T", "17B05026001LE": "J/A MLF-2 8X8 0.85T", "1M999471000E": "J/A MLF-2 8X8 0.85T", "1M999471002E": "J/A MLF-2 8X8 0.85T", "17B05084001LE": "J/A MODULE 2.115X2.115 0.60T(Assembly)", "17B05004001LE": "J/A MODULE 3.38X3.38 0.791T(35.4Yellow P-BIN)", "17B05005001LE": "J/A MODULE 3.38X3.38 CO(35.4Yellow P-BIN)", "17B05006001LE": "J/A MODULE-1 3.2X3.2 0.54T(35.4mmGreen P-BIN)", "17B05007001LE": "J/A MODULE-1 3.2X3.2 COVER(35.4mmGreen P-BIN)", "17B05008001LE": "J/A MODULE-2 3.2X3.2 0.79T(35.4mm Blue P-BIN)", "17B05009001LE": "J/A MODULE-2 3.2X3.2 COVER(35.4mm Blue P-BIN)", "1M999317000E": "J/A NSP 12.0X12.4 1.35T", "1M999317001E": "J/A NSP 12.0X12.4 1.35T", "1M999600000EB": "J/A NSP 12X11.1 0.886T", "17B05074001LE": "J/A PSP 4.4X4.4 1.15T", "17B05074003LE": "J/A PSP 4.4X4.4 1.15T", "17B05074004LE": "J/A PSP 4.4X4.4 1.15T", "17B05074006LE": "J/A PSP 4.4X4.4 1.15T", "1M999151000E": "J/A PSP 6.28X7.71 1.15T", "1M999151001E": "J/A PSP 6.28X7.71 1.15T", "17B05075001LE": "J/A PSP 8.75X5.50 1.25T", "17B05075003LE": "J/A PSP 8.75X5.50 1.25T", "17B05075005LE": "J/A PSP 8.75X5.50 1.25T", "1M999159000E": "J/A PSP 8X10 0.65T", "1M999159001E": "J/A PSP 8X10 0.65T", "1M999159002E": "J/A PSP 8X10 0.65T", "1M999159003E": "J/A PSP 8X10 0.65T", "17B05097001LE": "J/A PSP 8X10 0.65T/B", "1M999524000E": "J/A QFN 13X13 0.85T", "17B05036001LE": "J/A QFN 5X3.5mm", "17B05081001LE": "J/A QFN 5X3.5mm", "17B05081002LE": "J/A QFN 5X3.5mm", "1M999361000E": "J/H BGA 50X50 4.37T", "1M999361001E": "J/H BGA 50X50 4.37T", "1M999361002E": "J/H BGA 50X50 4.37T", "1M999354000E": "J/H BGA 55X55 5.77T", "1M999432000E": "J/H BGA 55X55 5.77T", "1M999432001E": "J/H BGA 55X55 5.77T", "1M999432002E": "J/H BGA 55X55 5.77T", "1M999427000E": "J/H BGA 60X60 4.97T", "1M999433000EB": "J/H BGA 65X65 5.67T", "17B05093001LE": "J/H FC-BGA 27X27 3.18T", "17B05093002LE": "J/H FC-BGA 27X27 3.18T", "1M999463000E": "J/H FC-BGA 35X35 4.54T", "1M999463001E": "J/H FC-BGA 35X35 4.54T", "17B05090001LE": "J/H FC-BGA 37.5X37.5 3.99T", "1M999299000E": "J/H FC-BGA 37.5X37.5 3.99T", "1M999299001E": "J/H FC-BGA 37.5X37.5 3.99T", "17B05094001LE": "J/H FC-BGA 55X55 4.39T", "1M999254000E": "J/H FC-BGA 55X55 4.39T", "1M999254001E": "J/H FC-BGA 55X55 4.39T", "1M999254002E": "J/H FC-BGA 55X55 4.39T", "1M999221000E": "J/H FC-BGA 57.5X57.5 4.39T", "1M999221001E": "J/H FC-BGA 57.5X57.5 4.39T", "1M999221002E": "J/H FC-BGA 57.5X57.5 4.39T", "17B12006001LE": "J/H MODULE 48X61 2.29T", "17B12006002LE": "J/H MODULE 48X61 2.29T", "17B05042001LE": "J/L BGA 12.3X12.3 1.84T", "17B05042002LE": "J/L BGA 12.3X12.3 1.84T", "1M999598000E": "J/L BGA 14X14 0.705T", "17B05083001LE": "J/L BGA 17X17 1.30T", "1M999561000EB": "J/L BGA 18X18 1.22T", "1M999510000E": "J/L BGA 19X19 1.73T", "1M999510001E": "J/L BGA 19X19 1.73T", "1M999510002E": "J/L BGA 19X19 1.73T", "17B12005001LE": "J/L BGA 27.70X26.07 1.44T", "17B12001001LE": "J/L BGA 27.7X23.21 1.5T", "17B12002001LE": "J/L BGA 27.7X24 1.08T", "17B12004001LE": "J/L BGA 27.7X24.0 1.44T", "17B05046001LE": "J/L BGA 9X15 1.62T", "17B05046002LE": "J/L BGA 9X15 1.62T", "17B05046003LE": "J/L BGA 9X15 1.62T", "17B05046005LE": "J/L BGA 9X15 1.62T", "17B05017001LE": "J/L CABGA 10X10 1.04T", "17B05032001LE": "J/L CABGA 10X10 1.04T", "17B05032003LE": "J/L CABGA 10X10 1.04T", "17B07007001LE": "J/L CABGA 10X10 1.04T", "17B05016001LE": "J/L CABGA 12X13 1.06T", "17B05063001LE": "J/L CABGA 14X14 0.8T", "17B05048001LE": "J/L CABGA 9X9 1.06T", "17B05048002LE": "J/L CABGA 9X9 1.06T", "17B05048003LE": "J/L CABGA 9X9 1.06T", "17B05049001LE": "J/L CABGA 9X9 1.06T", "17B08002001LE": "J/L CABGA 9X9 1.06T", "1M999591000E": "J/L CSP 12X12 0.85T", "1M999591002E": "J/L CSP 12X12 0.85T", "1M999777000E": "J/L CSP 12X12 0.85T", "17B05096001LE": "J/L CSP 12X12 0.85T", "1M999609000EB": "J/L CSP 12X12 0.85T", "1M999609001EB": "J/L CSP 12X12 0.85T", "17B05015001LE": "J/L CSP 13X10 1.33T", "17B05015002LE": "J/L CSP 13X10 1.33T", "17B05092001LE": "J/L FBGA 25X25 1.39T", "17B05092002LE": "J/L FBGA 25X25 1.39T", "17B05028001LE": "J/L FBGA 6X8 0.65T", "17B05028002LE": "J/L FBGA 6X8 0.65T", "17B05028003LE": "J/L FBGA 6X8 0.65T", "17B08003001LE": "J/L FBGA 7X7 1.59T", "1M999893001E": "J/L FC-BGA 31X31 2.7T", "1M999893003E": "J/L FC-BGA 31X31 2.7T", "17B05043001LE": "J/L FC-BGA 35X35 2.7T", "1M999911001E": "J/L FC-BGA 35X35 2.7T", "1M999911003E": "J/L FC-BGA 35X35 2.7T", "17B12003001LE": "J/L FC-BGA 37.7X32.7 1.90T", "1M999786000EB": "J/L HPBGA35X35 3.08T", "17B05031001LE": "J/L LGA 3.55X3.55 1.45T", "17B05031002LE": "J/L LGA 3.55X3.55 1.45T", "17B05052001LE": "J/L LGA 3.55X3.55 2.10T", "17B05091001LE": "J/L MEMS 2.80X3.55 1.73T", "17B05095001LE": "J/L MEMS 3.5X3.5 1.93T/A", "17B05012001LE": "J/L MODULE 7.14X12.76 3.70T(X1446) (Assembly)", "17B05012002LE": "J/L MODULE 7.14X12.76 3.70T(X1446) (Assembly)", "17B05011001LE": "J/L MODULE 7.20X13.01 3.70T (Assembly)", "17B05011002LE": "J/L MODULE 7.20X13.01 3.70T (Assembly)", "17B05003001LE": "J/L MODULE-2 5.2X11 1.086T", "17B05030001LE": "J/L MQFP 10X10 2.0T", "17B08001001LE": "J/L MQFP 10X10 2.0T", "17B05034001LE": "J/L MQFP 28X28 3.37T", "17B05076001LE": "J/L NSP 12.4X12.0 1.33T", "17B05040001LE": "J/L NSP 12X14 0.70T", "1M999170000E": "J/L NSP 6.71X12.20 1.63T", "1M999170002E": "J/L NSP 6.71X12.20 1.63T", "1M999508000E": "J/L PBGA 21X21 1.31T", "1M999508001E": "J/L PBGA 21X21 1.31T", "1M999508002E": "J/L PBGA 21X21 1.31T", "1M999508003E": "J/L PBGA 21X21 1.31T", "17B05001001LE": "J/L PBGA 23X23 1.73T", "17B05038001LE": "J/L PBGA 23X23 1.73T", "17B05002001LE": "J/L PBGA 27X27 1.53T", "17B05080001LE": "J/L PBGA 27X27 1.53T", "17B05044001LE": "J/L PBGA 27X27 1.73T", "1M999562000E": "J/L PBGA 27X27 1.73T", "1M999562002E": "J/L PBGA 27X27 1.73T", "1M999355000E": "J/L PBGA 31X31 1.73T", "17B05039001LE": "J/L PIM 3.25X3.25 2.53T", "17B05073001LE": "J/L PSP 3.00X18.18 1.43T", "17B05073002LE": "J/L PSP 3.00X18.18 1.43T", "17B05061001LE": "J/L QFN 14X14 0.85T", "17B05062001LE": "J/L QFN 14X14 0.85T", "17B05062002LE": "J/L QFN 14X14 0.85T", "1M999785000EB": "J/L SCSP 11X13 1.40T", "1M999785001EB": "J/L SCSP 11X13 1.40T", "1M999785002EB": "J/L SCSP 11X13 1.40T", "1M999785003EB": "J/L SCSP 11X13 1.40T", "1M999785004EB": "J/L SCSP 11X13 1.40T", "1M999785005EB": "J/L SCSP 11X13 1.40T", "17B05014001LE": "J/L SOIC 16LD 2.3T", "17B08007001LE": "J/L SOIC 7.9X15.3 2.48T", "1M999599000E": "J/L TFBGA 12X14 1.20T", "17B05025001LE": "J/L TQFP 10X10 1.0T", "17B05065001LE": "J/L TQFP 10X10 1.0T", "17B05054001LE": "J/L TQFP 10X10 1.0T", "17B07002001LE": "J/L TQFP 10X10 1.0T", "17B05037001LE": "J/L TQFP 10X10 1.4T", "17B07003001LE": "J/L TQFP 10X10 1.4T", "17L01001001LE": "J/L TQFP 12X12 1.0T", "17B07005001LE": "J/L TQFP 12X12 1.0T", "17R01007001LE": "J/L TQFP 12X12 1.0T", "17B05018001LE": "J/L TQFP 12X12 1.0T", "17B05018002LE": "J/L TQFP 12X12 1.0T", "17B05064001LE": "J/L TQFP 12X12 1.0T", "17B05018003LE": "J/L TQFP 12X12 1.0T", "17B07001001LE": "J/L TQFP 14X14 1.4T", "17B05020001LE": "J/L TQFP 14X14 1.4T", "17B05021001LE": "J/L TQFP 14X14 1.4T", "17B08004001LE": "J/L TQFP 14X14 1.4T", "17B05057001LE": "J/L TQFP 16X16 1.0T", "17B05057003LE": "J/L TQFP 16X16 1.0T", "17B05057004LE": "J/L TQFP 16X16 1.0T", "17B05051001LE": "J/L TQFP 20X20 1.4T", "1M999394000E": "J/L TQFP 20X20 1.4T", "1M999394002E": "J/L TQFP 20X20 1.4T", "17B05056001LE": "J/L TQFP 20X20 1.4T", "17B05024001LE": "J/L TQFP 7X7 1.0T", "17B07006001LE": "J/L TQFP 7X7 1.0T", "17B05053001LE": "J/L TQFP 7X7 1.0T", "17B05047001LE": "J/L TQFP 7X7 1.0T", "17B05047002LE": "J/L TQFP 7X7 1.0T", "17B05047005LE": "J/L TQFP 7X7 1.0T", "17B05055001LE": "J/L TQFP 7X7 1.4T", "17B07004001LE": "J/L TQFP 7X7 1.4T", "17B07004002LE": "J/L TQFP 7X7 1.4T", "17B08008001LE": "J/L TSSOP 14LD 1.13T", "1M999788000E": "JEDEC/LOW LQFP 10X10", "1M999788001EB": "JEDEC/LOW LQFP 10X10", "17B42002001LE": "KBG73X71 1.91 0104 42", "17B42002002LE": "KBG73X71 1.91 0104 42", "17B42001001LE": "KBG73X71 4.03 0104 42", "17B42001002LE": "KBG73X71 4.03 0104 42", "17B12021001LE": "KH BG6565 10.643 0103 12", "1M999144000EB": "KH BG70.6X70 3.90 0104 9", "1M999165000EB": "KH BG75X76 6.01 0103 9", "1M999167000EB": "KH BG77.5X77.5 3.82 0103 9", "17B12025001LE": "KH BG77.5X77.5 6.13 0103 12", "1M999178000E": "KH BG77.5X77.5 6.13 0103 12", "1M999178001EB": "KH BG77.5X77.5 6.13 0103 12", "1M999178002E": "KH BG77.5X77.5 6.13 0103 12", "17B12010001LE": "KH BG77.5X90.8 6.56 0103 12", "17B12010002LE": "KH BG77.5X90.8 6.56 0103 12", "17B12010003LE": "KH BG77.5X90.8 6.56 0103 12", "17B12010004LE": "KH BG77.5X90.8 6.56 0103 12", "17B12010005LE": "KH BG77.5X90.8 6.56 0103 12", "17B12010006LE": "KH BG77.5X90.8 6.56 0103 12", "17B12009001LE": "KH BG82.5X72.5 6.53 0103 12", "17B12009002LE": "KH BG82.5X72.5 6.53 0103 12", "17B12009003LE": "KH BG82.5X72.5 6.53 0103 12", "17BP9005001LE": "KH BG85X110 6.23 0102 9", "1M999185000EB": "KH BG85X110 6.23 0102 9", "1M999185001EB": "KH BG85X110 6.23 0102 9", "17B12008001LE": "KH BG85x120 6.32 0102 12", "17B12008002LE": "KH BG85x120 6.32 0102 12", "17B12007001LE": "KH BG85x120 7.17 0102 12", "17B12007003LE": "KH BG85X120 7.17 0102 12", "17B12007004LE": "KH BG85X120 7.17 0102 12", "17B12007005LE": "KH BG85x120 7.17 0102 12", "17B12007006LE": "KH BG85x120 7.17 0102 12", "17B12007007LE": "KH BG85x120 7.17 0102 12", "1M999183000E": "KH BG94X95 5.78 0102 9", "1M999141000E": "KH BG98X94 5.86 0102 12", "1M999321000E": "KH BGA62.5X62.5 4.99 0104 2", "1M999225000EB": "KH BGA70X70 5.30 0104 2", "1M999225001EB": "KH BGA70X70 5.30 0104 2", "1M999216000EB": "KH BGA77.5X90.5 5.83 0103 2", "1M999216001EB": "KH BGA77.5X90.5 5.83 0103 2", "1M999161000EB": "KH LGA69.5X71 5.75 0104 12", "17B12014001LE": "KH MODULE67.5X67.5 6.48 0104 12", "17B12014002LE": "KH MODULE67.5X67.5 6.48 0104 12", "1M999327000E": "KH MODULE77.5X77.8 5.59 0103 2", "1M999327001E": "KH MODULE77.5X77.8 5.59 0103 2", "1M999327002E": "KH MODULE77.5X77.8 5.59 0103 2", "17B12028001LE": "KH MODULE80.5X92.5 5.65 0103 12", "1M999145001E": "KH MODULE80.5X92.5 5.65 0103 12", "1M999203000EB": "KX BG100X100 6.392 0102 9", "1M999319000E": "KX BG100X72.5 4.99 0103 9", "17B13265001G2LE": "KX BG26.375X13.75 3.66 0418 13", "1M999302000E": "KX BG2929 4.29 0308 9", "1M999496000EB": "KX BG3131 3.83 0309 12 REV.A bL2", "1M999496002E": "KX BG3131 3.83 0309 12 REV.A bL2", "1M999496001E": "KX BG3131 3.83 0309 12REV.AbL2", "1M999162000EB": "KX BG3535 4.65 0307 12", "1M999162001EB": "KX BG3535 4.65 0307 12", "1M999190000E": "KX BG3535 4.72 0307 9", "1M999168000EB": "KX BG3535 4.90 0307 9", "1M999186000E": "KX BG3535 5.28 0307 9", "17B12020001LE": "KX BG4040 3.16 0206 12", "1M999146000EB": "KX BG4040 3.16 0206 12", "1M999388000EB": "KX BG4040 3.22 0206 9", "1M999388001EB": "KX BG4040 3.22 0206 9", "1M999509000E": "KX BG4040 3.8 0206 13", "1M999222000E": "KX BG40X40 3.496 0206 9", "1M999334000EB": "KX BG42.5X42.5 3.66 0206 9", "1M999334001EB": "KX BG42.5X42.5 3.66 0206 9", "17B13006001LE": "KX BG5050 3.8 0205", "1M999233000E": "KX BG5050 4.44 0204 9", "17B08538004LEB": "KX BG52.5X52.5 3.0 0205 8bL2", "1M999311000EB": "KX BG52.5X52.5 3.0 0205 9bL2", "1M999431000E": "KX BG52.5X52.5 4.3 0205 13", "17B12029001LE": "KX BG52.5X52.5 5.11 0205 12", "1M999147000E": "KX BG52.5X52.5 5.11 0205 12", "17BP9011001LE": "KX BG5555 5.21 0205 9 REV.B bL4", "1M999515000E": "KX BG5555 5.21 0205 9 REV.B bL4", "1M999515001E": "KX BG5555 5.21 0205 9 REV.B bL4", "1M999323000E": "KX BG5555 5.23 0204 9", "17B12016001LE": "KX BG56X70 5.91 0203 12", "1M999143000E": "KX BG56X70 5.91 0203 12", "1M999565000EB": "KX BG6060 2.95 0204 9", "1M999565001EB": "KX BG6060 2.95 0204 9", "1M999565003EB": "KX BG6060 2.95 0204 9", "1M999434000EB": "KX BG6060 4.73 0204 9", "1M999434001EB": "KX BG6060 4.73 0204 9", "1M999434002EB": "KX BG6060 4.73 0204 9", "1M999434003EB": "KX BG6060 4.73 0204 9", "17BP9009001LE": "KX BG6060 4.91 0204 9", "1M999290000EB": "KX BG6060 4.91 0204 9", "1M999290001E": "KX BG6060 4.91 0204 9", "1M999160000EB": "KX BG6060 5.06 0204 12", "1M999250000E": "KX BG60X72.5 5.10 0203 9", "1M999250001EB": "KX BG60X72.5 5.10 0203 9", "17B06003001LE": "KX BG62.5X62.5 5.0 0104 6", "17B06003002LE": "KX BG62.5X62.5 5.0 0104 6", "17B06003003LE": "KX BG62.5X62.5 5.0 0104 6", "17BP9002001LE": "KX BG65X65 5.45 0104 9", "17BP9002002LE": "KX BG65X65 5.45 0104 9", "1M999404000E": "KX BG65X65 5.45 0104 9", "1M999404001E": "KX BG65X65 5.45 0104 9", "1M999280000E": "KX BG67.5X67.5 4.12 0104 9", "1M999280001E": "KX BG67.5X67.5 4.12 0104 9", "1M999280002E": "KX BG67.5X67.5 4.12 0104 9", "17BP60123006LE": "KX BG67.5X67.5 4.9 0104 6 REV.A", "17BP60123007LE": "KX BG67.5X67.5 4.9 0104 6 REV.A", "17BP9012001LE": "KX BG67X77 4.94 0103 9", "1M999423001EB": "KX BG67X77 4.94 0103 9", "1M999188000EB": "KX BG69X71 1.69 0104 9", "1M999188002EB": "KX BG69X71 1.69 0104 9", "1M999189000EB": "KX BG69X71 3.76 0104 9", "1M999189002EB": "KX BG69X71 3.76 0104 9", "1M999189003EB": "KX BG69X71 3.76 0104 9", "1M999454000E": "KX BG70.6X70 1.23 0104 9", "1M999455000EB": "KX BG70.6X70 3.12 0104 9REV.A", "1M999309000EB": "KX BG70.6X70 3.38 0104 9", "1M999309002EB": "KX BG70.6X70 3.38 0104 9", "1M999309003EB": "KX BG70.6X70 3.38 0104 9", "1M999205000E": "KX BG7070 5.7 0104 9", "1M999205001E": "KX BG7070 5.7 0104 9", "1M999407000E": "KX BG71.5X66 3.4 0104 13", "17B13239001G2LE": "KX BG72X65 4.32 0104 13", "1M999556000EB": "KX BG7474 5.2 0103 13", "1M999556001EB": "KX BG7474 5.2 0103 13", "1M999226000E": "KX BG76.5X90 5.88 0103 9", "17BP9013001LE": "KX BG78X72 3.36 0104 9", "1M999465000E": "KX BG78X72 4.57 0104 9", "1M999392000E": "KX BG78X72 4.74 0104 9", "1M999392001E": "KX BG78X72 4.74 0104 9", "1M999220000EB": "KX BG79.1X76.3 1.975 0103 9", "1M999223000E": "KX BG79.1X76.3 3.895 0103 9", "1M999266000EB": "KX BG80X70 5.29 0104 9", "1M999266001EB": "KX BG80X70 5.29 0104 9", "1M999266002EB": "KX BG80X70 5.29 0104 9", "1M999389000E": "KX BG8585 4.88 0103 9", "1M999389001E": "KX BG8585 4.88 0103 9", "1M999477000EB": "KX BG8585 5.26 0103 8REV.A BL4", "1M999477001EB": "KX BG8585 5.26 0103 8REV.A BL4", "17B12017001LE": "KX BG87.5X72.5 5.10 0103 12 REV.A", "17B12017002LE": "KX BG87.5X72.5 5.10 0103 12 REV.A", "1M999164000E": "KX BG87.5X72.5 5.10 0103 12 REV.A", "1M999164001E": "KX BG87.5X72.5 5.10 0103 12 REV.A", "1M999164002E": "KX BG87.5X72.5 5.10 0103 12 REV.A", "1M999164003EB": "KX BG87.5X72.5 5.10 0103 12 REV.A", "17BP9004001LE": "KX BG87.5X72.5 5.10 0103 9", "1M999267000EB": "KX BG87.5X72.5 5.10 0103 9", "1M999267001EB": "KX BG87.5X72.5 5.10 0103 9", "1M999267002EB": "KX BG87.5X72.5 5.10 0103 9", "1M999267004EB": "KX BG87.5X72.5 5.10 0103 9", "1M999267005EB": "KX BG87.5X72.5 5.10 0103 9", "1M999267006EB": "KX BG87.5X72.5 5.10 0103 9", "1M999267009EB": "KX BG87.5X72.5 5.10 0103 9", "1M999267010EB": "KX BG87.5X72.5 5.10 0103 9", "1M999267013EB": "KX BG87.5X72.5 5.10 0103 9", "1M999267014EB": "KX BG87.5X72.5 5.10 0103 9", "1M999267015EB": "KX BG87.5X72.5 5.10 0103 9", "1M999282000E": "KX BG95X97.3 5.14 0102 9", "1M999285000E": "KX BGA100X100 5.71 0102 2", "17B12011001LE": "KX BGA110110 6.27 0102 12", "17B12019002LE": "KX BGA120X130 6.56 0102 12", "17B12018001LE": "KX BGA120X130 7.38 0102 12", "17B12018002LE": "KX BGA120X130 7.38 0102 12", "17B12015001LE": "KX BGA120X140 9.81 0102 12", "1M999229000EB": "KX BGA35X35 5.61 0308 2", "1M999229001EB": "KX BGA35X35 5.61 0308 2", "1M999268001EB": "KX BGA37.5X37.5 3.74 0307 2", "1M999268002EB": "KX BGA37.5X37.5 3.74 0307 2", "1M999268003EB": "KX BGA37.5X37.5 3.74 0307 2", "1M999268004EB": "KX BGA37.5X37.5 3.74 0307 2", "1M999274000E": "KX BGA47.5X47.5 2.56 0206 2", "1M999303000E": "KX BGA47.5X47.5 2.56 0206 2", "1M999238000EB": "KX BGA50X50 5.31 0205 2", "1M999316000E": "KX BGA55X55 4.80 0205 2", "1M999316001E": "KX BGA55X55 4.80 0205 2", "1M999275000E": "KX BGA57.5X57.5 5.28 0205 2", "1M999275002E": "KX BGA57.5X57.5 5.28 0205 2", "1M999275003E": "KX BGA57.5X57.5 5.28 0205 2", "1M999275005E": "KX BGA57.5X57.5 5.28 0205 2", "1M999292000EB": "KX BGA57.5X57.5 5.28 0205 2", "1M999297000E": "KX BGA57.5X57.5 5.28 0205 2", "17B13251001G2LEB": "KX LGA9191 4.6 0103 13BL4", "17B13251002G2LE": "KX LGA9191 4.6 0103 13BL4", "1M999251000E": "KX MODULE100X100 5.90 0102 2", "1M999256000E": "KX MODULE77.5X85.0 5.51 0103 2", "1M999256001EB": "KX MODULE77.5X85.0 5.51 0103 2", "1M999256003EB": "KX MODULE77.5X85.0 5.51 0103 2", "1M999256004E": "KX MODULE77.5X85.0 5.51 0103 2", "1M999256006E": "KX MODULE77.5X85.0 5.51 0103 2", "17B02001001LE": "KX MODULE77.8X77.5 5.36 0103 2", "1M999201001E": "KX MODULE77.8X77.5 5.36 0103 2", "17B05010001LE": "N/V MODULE 14.00X19.73 0.73T (Assembly)", "17B05013001LE": "N/V MODULE-1 14.00X19.73 0.73T (Assembly", "17BP6590007G1E": "ND 0707 1.4 1025 6REV.B", "17BP6134000G2LEB": "ND 0707 1.4 1025 6REV.H", "17BP6134004G2LE": "ND 0707 1.4 1025 6REV.H", "1M999181000EB": "ND 0707 1.4 1025 6REV.H", "1M999181003EB": "ND 0707 1.4 1025 6REV.H", "1M999181004E": "ND 0707 1.4 1025 6REV.H", "1M999181001EB": "ND 0707 1.4 1025 6REV.H", "17BP6856012G2LE": "ND 1010 1.4 0820 6REV.C", "17B06627008G2LEB": "ND 1010 1.4 0820 6REV.CbL2", "17B06627019G2LE": "ND 1010 1.4 0820 6REV.CbL2", "1M999968000EB": "NH BG1414 1.28 0717", "1M999968001EB": "NH BG1414 1.28 0717", "1M999968002E": "NH BG1414 1.28 0717", "1M999968003E": "NH BG1414 1.28 0717", "17BP60066001G2LEB": "NH BG1717 1.0 0615", "17BP60066002G2LEB": "NH BG1717 1.0 0615", "1M999584000E": "NH BG1717 1.0 0615", "1M999584001E": "NH BG1717 1.0 0615", "1M999584002E": "NH BG1717 1.0 0615", "1M999895000EB": "NH BG1717 2.80 0615 6 REV.A", "1M999895001EB": "NH BG1717 2.80 0615 6 REV.A", "1M999895002EB": "NH BG1717 2.80 0615 6 REV.A", "1M999895003EB": "NH BG1717 2.80 0615 6 REV.A", "1M999895001E": "NH BG1717 2.80 0615 6REV.A", "1M999895004E": "NH BG1717 2.80 0615 6REV.A", "1M999474000E": "NH BG2121 2.3 0512 6REV.A", "1M999245000EB": "NH BG2929 2.0 0409 REV.A", "1M999245001EB": "NH BG2929 2.0 0409 REV.A", "1M999245002EB": "NH BG2929 2.0 0409 REV.A", "1M999375000EB": "NX BG1010 1.25 0820 9", "1M999375001E": "NX BG1010 1.25 0820 9", "1M999375002E": "NX BG1010 1.25 0820 9", "17B06002001LE": "NX BG1414 1.4 0717", "1M999380000E": "NX BG1414 1.4 0717", "1M999443000EB": "NX BG17.2X13.2 1.45 0618 8", "1M999443001EB": "NX BG17.2X13.2 1.45 0618 8", "1M999443003E": "NX BG17.2X13.2 1.45 0618 8", "17BP6004004G2LE": "NX BG1919 1.0 0614 6", "1M999243000EB": "NX BG1919 1.0 0614 6", "1M999243001EB": "NX BG1919 1.0 0614 6", "1M999243002E": "NX BG1919 1.0 0614 6", "1M999243003E": "NX BG1919 1.0 0614 6", "1M999243004E": "NX BG1919 1.0 0614 6", "1M999243005E": "NX BG1919 1.0 0614 6", "1M999243006E": "NX BG1919 1.0 0614 6", "1M999243007E": "NX BG1919 1.0 0614 6", "1M999240000EB": "NX BG1919 1.0 0614 REV.A", "1M999240001EB": "NX BG1919 1.0 0614 REV.A", "17B06891012G2LE": "NX BG2323 0.61 0512 6", "1M999622000E": "NX BG2323 1.34 0512 6", "17BP60050005G2LE": "NX BG2323 2.0 0512 REV.A", "17BP60171001G2LE": "NX BG2727 1.43 0410 6", "1M999460000E": "NX BG3131 1.57 0309 6", "17BP6123012G2LEB": "NX BG3535 2.0 0308", "1M999244000EB": "NX BG3535 2.0 0308", "1M999244001EB": "NX BG3535 2.0 0308", "1M999244002EB": "NX BG3535 2.0 0308", "1M999244003EB": "NX BG3535 2.0 0308", "1M999244004EB": "NX BG3535 2.0 0308", "17BP6098007G2LEB": "NX BG3535 2.8 0308 6", "1M999246000EB": "NX BG3535 2.8 0308 6", "1M999246001EB": "NX BG3535 2.8 0308 6", "1M999261000E": "NX BG5060 1.2 0204 9", "1M999308000EB": "NX BG8.9X22.8 1.1 1012 9", "1M999308001E": "NX BG8.9X22.8 1.1 1012 9", "1M999308001EB": "NX BG8.9X22.8 1.1 1012 9", "1M999308002E": "NX BG8.9X22.8 1.1 1012 9", "1M999308002EB": "NX BG8.9X22.8 1.1 1012 9", "1M999308003EB": "NX BG8.9X22.8 1.1 1012 9", "17B39003001LE": "NX BGA11X9.5 1.5 0821 39X", "1M999324000E": "NX BGA52.5X52.5 1.99 0205 2", "1M999135000E": "NX LGA5.75X5.75 1.3 1230 39X", "17B39002001LE": "NX OLGA3.2X5 1.22 1435 39X", "1M999191000EB": "NX PIM7.65X6.8 3.77 1026 9", "1M999191001EB": "NX PIM7.65X6.8 3.77 1026 9", "1M999287000EB": "NX QFN6X6.5 1.3 1326 8", "1M999378000EB": "NX QFN6X6.5 1.3 1326 9", "1M999378001E": "NX QFN6X6.5 1.3 1326 9", "17B12023001LE": "TBG15.62X14.36 1.14 0614 12 RA bL4", "17B12026001LE": "TBG16.09X14.34 1.08 0616 12 bL4", "17B12022001LE": "TBG16.61X14.79 1.08 0614 12 bL4", "17B12022002LE": "TBG16.61X14.79 1.08 0614 12 bL4", "17B12022003LE": "TBG16.61X14.79 1.08 0614 12 bL4", "17B12024001LE": "TBG18.83X17.53 0.94 0514 12 bL4", "17B12027001LE": "TBG3.69X3.79 0.54 1435 12", "1M999337000EB": "TX BG0909 1.1 1026 9bL2", "1M999337001EB": "TX BG0909 1.1 1026 9bL2", "17BP9003002G2LE": "TX BG0911 0.7 1021 9", "17B22002001LE": "TX BG10X14.5 1.14 0816 22", "17B22002002LE": "TX BG10X14.5 1.14 0816 22", "17B22002003LE": "TX BG10X14.5 1.14 0816 22", "1M999155000E": "TX BG10X14.5 1.14 0816 22", "1M999155001E": "TX BG10X14.5 1.14 0816 22", "17B08012001LE": "TX BG10X14.5 1.14 0816 8", "1M999338001EB": "TX BG1111 1.1 0820 9bL2", "1M999338002E": "TX BG1111 1.1 0820 9bL2", "1M999376000EB": "TX BG1111 1.46 0820 9", "1M999376001E": "TX BG1111 1.46 0820 9", "1M999376001EB": "TX BG1111 1.46 0820 9", "1M999212000EB": "TX BG12.08X15.94 0.907 0714 9bL4", "1M999166000EB": "TX BG12.08X15.94 0.907 0814 9REV.AbL4", "17B22001001LE": "TX BG12.4X12.4 1.2 0817 22", "17B22001002LE": "TX BG12.4X12.4 1.2 0817 22", "1M999207000E": "TX BG12.4X12.4 1.2 0817 22", "1M999207001EB": "TX BG12.4X12.4 1.2 0817 22", "1M999207002E": "TX BG12.4X12.4 1.2 0817 22", "1M999179000E": "TX BG12.4X12.4 1.2 0817 8", "17B08010001LE": "TX BG12.4X12.4 1.2 0817 8", "1M999359000E": "TX BG12.63X16.52 0.59 0714 22", "1M999362000EB": "TX BG12.63X16.52 0.59 0714 22", "1M999466000E": "TX BG12.68X15.88 0.9 0714 9bL4", "1M999272000E": "TX BG12.73X16.47 0.79 0714 9bL4", "17BP9001001LE": "TX BG12.78X14.93 1.02 0714 9bL4", "17BP9001002LE": "TX BG12.78X14.93 1.02 0714 9bL4", "1M999328000E": "TX BG12.7X9.2 0.78 0721 9bL4", "1M999357000E": "TX BG12.81X16.7 0.92 0714 9bL4", "1M999456000E": "TX BG12.81X17.44 0.98 0714 9bL4", "1M999451000E": "TX BG12.93X17.16 0.89 0714 9bL4", "1M999142000E": "TX BG14.00X21.75 1.14 0612 9bL4", "1M999363000EB": "TX BG14.1X13 1.0 0616 22", "1M999363001EB": "TX BG14.1X13 1.0 0616 22", "1M999283000E": "TX BG14.1X17.81 0.89 0614 9bL4", "1M999263000E": "TX BG14.6X14.6 0.32 0614 9bL4", "1M999331000E": "TX BG14.6X14.6 0.91 0614 9bL4", "1M999214000EB": "TX BG14.7X14.5 0.53 0614 9bL4", "1M999184000EB": "TX BG14.7X14.5 1.16 0614 9 REV.A bL4", "1M999184002E": "TX BG14.7X14.5 1.16 0614 9 REV.A bL4", "1M999213000EB": "TX BG14.7X14.5 1.16 0614 9bL4", "1M999213001EB": "TX BG14.7X14.5 1.16 0614 9bL4", "1M999248000E": "TX BG1414 0.81 0717 9bL2", "17BP9200001LE": "TX BG1414 1.4 0717 9bL2", "1M999339000EB": "TX BG1414 1.4 0717 9bL2", "1M999498001E": "TX BG14x12.4 0.67 0616 27", "1M999498004E": "TX BG14x12.4 0.67 0616 27", "1M999507000E": "TX BG14x12.4 0.67 0616 8", "1M999153000E": "TX BG15.62X14.36 1.14 0614 9bL4", "17BP6169001G2LEB": "TX BG1515 1.2 0717 REV.A", "17BP6169002G2LE": "TX BG1515 1.2 0717 REV.A", "17BP6169003G2LE": "TX BG1515 1.2 0717 REV.A", "17BP6169006G2LE": "TX BG1515 1.2 0717 REV.A", "17BP9201001LE": "TX BG16.65X14.83 1.08 0614 9bL4", "17BP9201002LE": "TX BG16.65X14.83 1.08 0614 9bL4", "17BP9201003LE": "TX BG16.65X14.83 1.08 0614 9bL4", "1M999154000EB": "TX BG16.65X14.83 1.08 0614 9bL4", "1M999154001EB": "TX BG16.65X14.83 1.08 0614 9bL4", "1M999187000EB": "TX BG17.08X16.19 0.91 0614 9bL4", "1M999247000E": "TX BG1818 0.82 0512 9bL2", "1M999192000E": "TX BG1818 1.24 0614 32", "1M999192002E": "TX BG1818 1.24 0614 32", "1M999192003E": "TX BG1818 1.24 0614 32", "1M999527000EB": "TX BG22.25X15.05 0.76 0517 13bL4", "1M999428000EB": "TX BG27.5X12 2.3 0419 9", "1M999279000E": "TX BG3.6X4.1 1.0 1435 9bL2", "17B13001001LE": "TX BG3131 2.05 0309 13bL2", "1M999252000E": "TX BG3131 2.05 0309 13bL2", "1M999252001E": "TX BG3131 2.05 0309 13bL2", "1M999252003E": "TX BG3131 2.05 0309 13bL2", "1M999255000E": "TX BG3131 2.05 0309 1-SR1", "1M999313000E": "TX BG3131 2.05 0309 9bL2", "1M999313001EB": "TX BG3131 2.05 0309 9bL2", "1M999313002E": "TX BG3131 2.05 0309 9bL2", "1M999148000E": "TX BG35X25 0.65 0407 39X", "1M999172000E": "TX BG4.4X4.4 1.0 1435 1-SR2", "1M999429000EB": "TX BG4.4X4.4 1.0 1435 9bL2", "1M999429001E": "TX BG4.4X4.4 1.0 1435 9bL2", "1M999429002E": "TX BG4.4X4.4 1.0 1435 9bL2", "1M999200000E": "TX BG6.2X11.4 0.94 1020 8", "1M999180000E": "TX BG6.2X12.6 1.20 1020 22", "1M999180001E": "TX BG6.2X12.6 1.20 1020 22", "1M999180002E": "TX BG6.2X12.6 1.20 1020 22", "1M999169000E": "TX BG6.2X12.6 1.20 1020 8", "1M999169001E": "TX BG6.2X12.6 1.20 1020 8", "1M999217000E": "TX BG6.4X6.4 1.0 1026 13bL2", "1M999217001E": "TX BG6.4X6.4 1.0 1026 13bL2", "17B22003001LE": "TX BG7.2X12.4 1.0 1017 22", "17B22003002LE": "TX BG7.2X12.4 1.0 1017 22", "1M999310000EB": "TX BG7.2X12.4 1.0 1017 22", "1M999310001EB": "TX BG7.2X12.4 1.0 1017 22", "1M999310003EB": "TX BG7.2X12.4 1.0 1017 22", "1M999305000E": "TX BG7.2X12.4 1.0 1017 8", "1M999194000EB": "TX BG7.5X11 1.16 1021 22", "1M999194002EB": "TX BG7.5X11 1.16 1021 22", "17B08617002LE": "TX BG7.5X11 1.16 1021 8", "1M999265000EB": "TX BG7.5X11.5 1.0 1019 22", "1M999264000E": "TX BG7.5X11.5 1.0 1019 8", "1M999176000E": "TX BG7.5X13.5 1.20 1018 22", "1M999176001E": "TX BG7.5X13.5 1.20 1018 22", "17BP6222004G2LEB": "TX BG7.8X7.8 0.55 1026", "17BP6222005G2LE": "TX BG7.8X7.8 0.55 1026", "1M999163000EB": "TX BG8.93X14.26 0.81 1016 9bL4", "1M999276000E": "TX BG8X12.4 1.2 1017 22", "1M999276001E": "TX BG8X12.4 1.2 1017 22", "1M999346000E": "TX BG9.16X15.93 0.75 0814 9bL4", "17B08539003LE": "TX BG9.57X8.57 0.56 1021 8 REV.A", "17B08539001LE": "TX BG9.57X8.57 0.56 1021 8 REV.AbL4", "17B02002001LE": "TX BG9X11 0.8 1021 2", "1M999202000EB": "TX BG9X11 0.8 1021 2", "1M999202001EB": "TX BG9X11 0.8 1021 2", "1M999202002EB": "TX BG9X11 0.8 1021 2", "1M999502000EB": "TX BGA0606 1.0 1435 9 REV.M bL2", "1M999502001EB": "TX BGA0606 1.0 1435 9 REV.M bL2", "1M999502002E": "TX BGA0606 1.0 1435 9 REV.M bL2", "1M999502003EB": "TX BGA0606 1.0 1435 9 REV.M bL2", "1M999502004EB": "TX BGA0606 1.0 1435 9 REV.M bL2", "1M999502005E": "TX BGA0606 1.0 1435 9REV.MbL2", "17B08009001LE": "TX CSP1.535X1.865 0.62 1435 8bL2", "17B08011002LE": "TX CSP1.535X2.2 0.62 1435 8 bL2", "17B12030001LE": "TX CSP2.49X2.58 0.37 1435 12 bR2", "17B05079001LE": "TX LGA14X14 2.7 0717 39X", "1M999491000EB": "TX LGA5.9x7.9 0.58 1426 9bL2", "1M999492000EB": "TX LGA6X6.4 0.58 1426 9bL2", "17B05082001LE": "TX LGA6X6.4 0.58 1426 9bL2 (BLUE P-BIN)", "1M999157000EB": "TX OLGA2.13X2.08 0.6 1235 32X", "1M999174000E": "TX OLGA2.13X2.08 0.628 1235 39X", "1M999449000EB": "TX PIM2.95X4.07 0.8 1435 9bL2", "1M999449001E": "TX PIM2.95X4.07 0.8 1435 9bL2", "1M999449001EB": "TX PIM2.95X4.07 0.8 1435 9bL2", "1M999382000EB": "TX PIM6.5X10 1.42 1020 9bL2", "17BP9008002LEB": "TX PIM7.3X11 1.35 1020 9bL2", "17BP9008004LE": "TX PIM7.3X11 1.35 1020 9bL2", "1M999237000E": "TX PIM8X12.5 1.37 1017 9bL2", "1M999273001E": "TX QFN0202 0.8 1435 9bL2", "17BP9010001LE": "TX QFN0405 0.6 1435 9bL2", "1M999139000E": "TX QFN0807 0.8 1026 39X", "1M999462000E": "TX QFN0909 1.0 1026 6REV.B", "1M999462001E": "TX QFN0909 1.0 1026 6REV.B", "17BP6250001G2LEB": "TX QFN12X11 0.8 0821", "17BP6250004G2LE": "TX QFN12X11 0.8 0821", "17BP6250005G2LE": "TX QFN12X11 0.8 0821", "17BP6250006G2LE": "TX QFN12X11 0.8 0821", "1M999464001E": "TX QFN2.6X2.6 0.68 1640 9REV.AbL2", "1M999464002E": "TX QFN2.6X2.6 0.68 1640 9REV.AbL2", "1M999350000EB": "J/A BGA 11.5X9.5 1.01T", "17B05041002LE": "J/A BGA 7.5X13.3 1.1T", "1M999472001E": "J/A BGA 7X6 0.545T", "1M999540003E": "J/A FC-BGA 25X35 0.75T", "17B08005001LE": "J/A LGA 4.4X8.2 2.92T", "17B05033002LE": "J/A MLF 7X7 0.85T", "1M999560001E": "J/A MLF 9X9 0.85T", "17B05022002LE": "J/A MLF-2 5X5 0.85T", "17B05026002LE": "J/A MLF-2 8X8 0.85T", "1M999471001E": "J/A MLF-2 8X8 0.85T", "1M999471003E": "J/A MLF-2 8X8 0.85T", "17B05074002LE": "J/A PSP 4.4X4.4 1.15T", "17B05074005LE": "J/A PSP 4.4X4.4 1.15T", "1M999151002E": "J/A PSP 6.28X7.71 1.15T", "17B05075002LE": "J/A PSP 8.75X5.50 1.25T", "17B05075004LE": "J/A PSP 8.75X5.50 1.25T", "1M999524001E": "J/A QFN 13X13 0.85T", "1M999446000E": "J/H BGA 50X50 4.37T", "1M999221003E": "J/H FC-BGA 57.5X57.5 4.39T", "1M999397000E": "J/H FC-BGA 57.5X57.5 4.39T", "17B12005002LE": "J/L BGA 27.70X26.07 1.44T", "17B12001002LE": "J/L BGA 27.7X23.21 1.5T", "17B12002002LE": "J/L BGA 27.7X24 1.08T", "17B12004002LE": "J/L BGA 27.7X24.0 1.44T", "17B05046004LE": "J/L BGA 9X15 1.62T", "17B05032002LE": "J/L CABGA 10X10 1.04T", "1M999591001E": "J/L CSP 12X12 0.85T", "1M999591003E": "J/L CSP 12X12 0.85T", "1M999893002E": "J/L FC-BGA 31X31 2.7T", "1M999911002E": "J/L FC-BGA 35X35 2.7T", "17B12003002LE": "J/L FC-BGA 37.7X32.7 1.90T", "17B05030002LE": "J/L MQFP 10X10 2.0T", "17B05076002LE": "J/L NSP 12.4X12.0 1.33T", "1M999170001E": "J/L NSP 6.71X12.20 1.63T", "1M999170003E": "J/L NSP 6.71X12.20 1.63T", "1M999170004E": "J/L NSP 6.71X12.20 1.63T", "17B05001002LE": "J/L PBGA 23X23 1.73T", "1M999562001E": "J/L PBGA 27X27 1.73T", "1M999599001E": "J/L TFBGA 12X14 1.20T", "17B05054002LE": "J/L TQFP 10X10 1.0T", "17B05020002LE": "J/L TQFP 14X14 1.4T", "17B08004002LE": "J/L TQFP 14X14 1.4T", "1M999394001E": "J/L TQFP 20X20 1.4T", "17B05056002LE": "J/L TQFP 20X20 1.4T", "17B05055002LE": "J/L TQFP 7X7 1.4T", "1M999216002EB": "KH BGA77.5X90.5 5.83 0103 2", "1M999224000E": "KH BGA77.5X90.5 5.83 0103 2", "1M999161001EB": "KH LGA69.5X71 5.75 0104 12", "1M999203001EB": "KX BG100X100 6.392 0102 9", "1M999606000E": "KX BG4040 3.8 0206 13", "1M999358000EB": "KX BG5555 5.23 0204 9", "1M999434001E": "KX BG6060 4.73 0204 9", "1M999434004EB": "KX BG6060 4.73 0204 9", "1M999404002E": "KX BG65X65 5.45 0104 9", "1M999425000EB": "KX BG65X65 5.45 0104 9", "17BP9006001LE": "KX BG67.5X67.5 4.12 0104 9", "1M999423000EB": "KX BG67X77 4.94 0103 9", "1M999423001E": "KX BG67X77 4.94 0103 9", "1M999423002EB": "KX BG67X77 4.94 0103 9", "1M999188001EB": "KX BG69X71 1.69 0104 9", "1M999188003EB": "KX BG69X71 1.69 0104 9", "1M999189001EB": "KX BG69X71 3.76 0104 9", "1M999189004EB": "KX BG69X71 3.76 0104 9", "1M999455001EB": "KX BG70.6X70 3.12 0104 9REV.A", "1M999455002EB": "KX BG70.6X70 3.12 0104 9REV.A", "1M999309001EB": "KX BG70.6X70 3.38 0104 9", "1M999309004EB": "KX BG70.6X70 3.38 0104 9", "1M999309005EB": "KX BG70.6X70 3.38 0104 9", "17B13239002G2LE": "KX BG72X65 4.32 0104 13", "1M999556002EB": "KX BG7474 5.2 0103 13", "1M999266001E": "KX BG80X70 5.29 0104 9", "1M999266003EB": "KX BG80X70 5.29 0104 9", "1M999477001E": "KX BG8585 5.26 0103 8REV.A BL4", "1M999164004E": "KX BG87.5X72.5 5.10 0103 12 REV.A", "1M999164005E": "KX BG87.5X72.5 5.10 0103 12 REV.A", "1M999267003E": "KX BG87.5X72.5 5.10 0103 9", "1M999267003EB": "KX BG87.5X72.5 5.10 0103 9", "1M999267007EB": "KX BG87.5X72.5 5.10 0103 9", "1M999267011EB": "KX BG87.5X72.5 5.10 0103 9", "1M999267012EB": "KX BG87.5X72.5 5.10 0103 9", "1M999267016EB": "KX BG87.5X72.5 5.10 0103 9", "1M999267017EB": "KX BG87.5X72.5 5.10 0103 9", "1M999285001E": "KX BGA100X100 5.71 0102 2", "1M999229003E": "KX BGA35X35 5.61 0308 2", "1M999268002E": "KX BGA37.5X37.5 3.74 0307 2", "1M999275001EB": "KX BGA57.5X57.5 5.28 0205 2", "1M999275004E": "KX BGA57.5X57.5 5.28 0205 2", "1M999256002EB": "KX MODULE77.5X85.0 5.51 0103 2", "1M999256005E": "KX MODULE77.5X85.0 5.51 0103 2", "1M999181002EB": "ND 0707 1.4 1025 6REV.H", "17BP6856013G2LE": "ND 1010 1.4 0820 6REV.C", "17B06627018G2LEB": "ND 1010 1.4 0820 6REV.CbL2", "1M999584003E": "NH BG1717 1.0 0615", "17BP6129009G2LEB": "NX BG1414 1.4 0717", "1M999380001E": "NX BG1414 1.4 0717", "17BP6004017G2LE": "NX BG1919 1.0 0614 6", "17BP6176007G2LE": "NX BG1919 1.0 0614 REV.A", "17BP6176014G2LE": "NX BG1919 1.0 0614 REV.A", "1M999242000E": "NX BG2323 0.61 0512 6", "1M999622001E": "NX BG2323 1.34 0512 6", "1M999622002E": "NX BG2323 1.34 0512 6", "1M999852007E": "NX BG2323 2.0 0512 REV.A", "17BP60171002G2LE": "NX BG2727 1.43 0410 6", "17B06947007G2LE": "NX BG3131 1.57 0309 6", "17BP6123010G2LE": "NX BG3535 2.0 0308", "17BP6098006G2LE": "NX BG3535 2.8 0308 6", "17BP6098011G2LE": "NX BG3535 2.8 0308 6", "1M999166001EB": "TX BG12.08X15.94 0.907 0814 9REV.AbL4", "1M999166002EB": "TX BG12.08X15.94 0.907 0814 9REV.AbL4", "1M999207003E": "TX BG12.4X12.4 1.2 0817 22", "1M999328001E": "TX BG12.7X9.2 0.78 0721 9bL4", "1M999363002EB": "TX BG14.1X13 1.0 0616 22", "1M999363003EB": "TX BG14.1X13 1.0 0616 22", "1M999184001EB": "TX BG14.7X14.5 1.16 0614 9 REV.A bL4", "1M999213001E": "TX BG14.7X14.5 1.16 0614 9bL4", "1M999213002EB": "TX BG14.7X14.5 1.16 0614 9bL4", "1M999248001E": "TX BG1414 0.81 0717 9bL2", "1M999339001EB": "TX BG1414 1.4 0717 9bL2", "1M999498000E": "TX BG14x12.4 0.67 0616 27", "1M999498002E": "TX BG14x12.4 0.67 0616 27", "1M999498003E": "TX BG14x12.4 0.67 0616 27", "1M999153001E": "TX BG15.62X14.36 1.14 0614 9bL4", "1M999154002EB": "TX BG16.65X14.83 1.08 0614 9bL4", "1M999154003EB": "TX BG16.65X14.83 1.08 0614 9bL4", "1M999247001E": "TX BG1818 0.82 0512 9bL2", "1M999192001E": "TX BG1818 1.24 0614 32", "1M999252002E": "TX BG3131 2.05 0309 13bL2", "1M999180003E": "TX BG6.2X12.6 1.20 1020 22", "1M999180004E": "TX BG6.2X12.6 1.20 1020 22", "1M999310002EB": "TX BG7.2X12.4 1.0 1017 22", "1M999310004EB": "TX BG7.2X12.4 1.0 1017 22", "1M999310005EB": "TX BG7.2X12.4 1.0 1017 22", "1M999194001E": "TX BG7.5X11 1.16 1021 22", "1M999194001EB": "TX BG7.5X11 1.16 1021 22", "1M999194003EB": "TX BG7.5X11 1.16 1021 22", "1M999194004EB": "TX BG7.5X11 1.16 1021 22", "1M999265001E": "TX BG7.5X11.5 1.0 1019 22", "1M999265001EB": "TX BG7.5X11.5 1.0 1019 22", "1M999265002EB": "TX BG7.5X11.5 1.0 1019 22", "1M999265003EB": "TX BG7.5X11.5 1.0 1019 22", "1M999265004EB": "TX BG7.5X11.5 1.0 1019 22", "1M999176002E": "TX BG7.5X13.5 1.20 1018 22", "1M999276002E": "TX BG8X12.4 1.2 1017 22", "1M999276003E": "TX BG8X12.4 1.2 1017 22", "1M999449002E": "TX PIM2.95X4.07 0.8 1435 9bL2", "1M999462002E": "TX QFN0909 1.0 1026 6REV.B"};
 
-// ── UI 요소 ──────────────────────────────────
-const fileInput  = document.getElementById('file-input');
-const fileNameEl = document.getElementById('file-name');
-const btnConvert = document.getElementById('btn-convert');
-const dropZone   = document.getElementById('drop-zone');
-const alertBox   = document.getElementById('alert-box');
-const progWrap   = document.getElementById('progress-wrap');
-const statBox    = document.getElementById('stat-box');
+// ==============================
+// DATA STORE
+// ==============================
+let pnMap = JSON.parse(localStorage.getItem('wms_pnmap') || 'null') || {...EXCEL_PN_DATA};
+let pnCustomer = JSON.parse(localStorage.getItem('wms_pncustomer') || 'null') || {...EXCEL_PN_CUSTOMER};
+let pnLastUpdate = localStorage.getItem('wms_pn_lastupdate') || 'Excel initial data';
+let products = [];
+let transactions = [];
 
-let selectedFile = null;
+// ==============================
+// 실제 창고 맵 (location.xlsx 기준)
+// ==============================
+const WAREHOUSE_MAP = {
+  'D-2':['01','02','03','04','05','06'],
+  'D-3':['01','02','03','04','05'],
+  'D-4':['01','02','03','04','05'],
+  'D-5':['01','02','03'],
+  'D-6':['01','02','03','04'],
+  'D-7':['01','02','03','04','05'],
+  'E-1':['01','02','03','04','05'],
+  'E-2':['01','02','03','04'],
+  'E-3':['01','02','03','04','05'],
+  'E-4':['01','02','03','04','05'],
+  'E-5':['01','02','03','04','05'],
+  'E-6':['01','02','03','04','05'],
+  'E-7':['01','02','03','04','05'],
+  'F-1':['01','02','03','04','05'],
+  'F-2':['01','02','03','04'],
+  'F-3':['01','02','03','04','05'],
+  'F-4':['01','02','03','04','05'],
+  'F-5':['01','02','03','04','05'],
+  'F-6':['01','02','03','04','05'],
+  'F-7':['01','02','03','04','05'],
+  'G-1':['01','02'],
+  'G-2':['01','02'],
+  'G-3':['01','02','03'],
+  'G-4':['01','02','03'],
+  'G-5':['01','02','03'],
+  'G-6':['01','02','03'],
+  'G-7':['01','02','03','04'],
+};
 
-// 파일 선택
-fileInput.addEventListener('change', () => {
-  if (fileInput.files.length) selectFile(fileInput.files[0]);
-});
+// Zone 목록 및 전체 Location 목록 (WAREHOUSE_MAP 기반)
+const ZONES     = Object.keys(WAREHOUSE_MAP); // 27 zones
+const LOCATIONS = Object.entries(WAREHOUSE_MAP).flatMap(([zone, positions]) =>
+  positions.map(pos => `${zone}-${pos}`)
+); // 116 locations
 
-// 드래그 앤 드롭
-dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('hover'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('hover'));
-dropZone.addEventListener('drop', e => {
-  e.preventDefault(); dropZone.classList.remove('hover');
-  if (e.dataTransfer.files.length) selectFile(e.dataTransfer.files[0]);
-});
+// Zone에 따른 동적 Position 옵션
+function getPosOptions(zone) {
+  const positions = WAREHOUSE_MAP[zone] || [];
+  return '<option value="">Pos</option>' +
+    positions.map(p=>`<option value="${p}">${p}</option>`).join('');
+}
+function updatePosOptions(prefix) {
+  const zone = (document.getElementById(prefix+'-loc-zone').value||'').trim().toUpperCase();
+  const el = document.getElementById(prefix+'-loc-pos');
+  if (el) { el.innerHTML = getPosOptions(zone); el.value = ''; }
+}
 
-function selectFile(f) {
-  if (!f.name.toLowerCase().endsWith('.xlsx')) {
-    showAlert('warning', '⚠️ .xlsx 파일만 지원합니다.');
+// 하위 호환성용 (DOMContentLoaded 초기화)
+const POS_OPTIONS = '<option value="">Pos</option>';
+
+// Zone 자동완성 헬퍼
+let acZoneHL  = { in:-1, out:-1 };
+let acZoneRes = { in:[], out:[] };
+
+function onZoneInput(prefix) {
+  const input = document.getElementById(prefix+'-loc-zone');
+  const list  = document.getElementById(prefix+'-zone-list');
+  const val   = input.value.trim().toUpperCase();
+  acZoneHL[prefix] = -1;
+  const results = val ? ZONES.filter(z => z.toUpperCase().includes(val)) : ZONES;
+  acZoneRes[prefix] = results;
+  if (!results.length) { list.style.display='none'; return; }
+  list.innerHTML = results.map((z,i) => {
+    const hl = val ? z.replace(new RegExp(val.replace(/[-]/g,'\\$&'),'gi'), m=>`<mark style="background:#ffe082">${m}</mark>`) : z;
+    return `<div class="ac-item" data-idx="${i}" onmousedown="selectZone('${prefix}','${z}')" onmouseover="setZoneHL('${prefix}',${i})"><div class="pn">${hl}</div></div>`;
+  }).join('') + `<div class="ac-count">${results.length} zones</div>`;
+  list.style.display = 'block';
+}
+function selectZone(prefix, zone) {
+  document.getElementById(prefix+'-loc-zone').value = zone;
+  document.getElementById(prefix+'-zone-list').style.display = 'none';
+  updatePosOptions(prefix);
+  document.getElementById(prefix+'-loc-pos').focus();
+}
+function setZoneHL(prefix, idx) {
+  acZoneHL[prefix] = idx;
+  document.querySelectorAll(`#${prefix}-zone-list .ac-item`).forEach((el,i)=>el.classList.toggle('active', i===idx));
+}
+function onZoneKeyDown(e, prefix) {
+  const items = document.querySelectorAll(`#${prefix}-zone-list .ac-item`);
+  if (e.key==='ArrowDown') { e.preventDefault(); setZoneHL(prefix, Math.min(acZoneHL[prefix]+1, items.length-1)); }
+  else if (e.key==='ArrowUp') { e.preventDefault(); setZoneHL(prefix, Math.max(acZoneHL[prefix]-1, 0)); }
+  else if (e.key==='Enter') {
+    e.preventDefault();
+    if (acZoneHL[prefix]>=0 && acZoneRes[prefix][acZoneHL[prefix]]) selectZone(prefix, acZoneRes[prefix][acZoneHL[prefix]]);
+  } else if (e.key==='Escape') { document.getElementById(prefix+'-zone-list').style.display='none'; }
+}
+function getLocationValue(prefix) {
+  const zone = (document.getElementById(prefix+'-loc-zone').value||'').trim();
+  const pos  = document.getElementById(prefix+'-loc-pos').value;
+  if (!zone || !pos) return '';
+  return `${zone}-${pos}`;
+}
+
+
+// ==============================
+// FIREBASE CONFIGURATION
+// ==============================
+// ▼▼▼ Replace with your Firebase project config ▼▼▼
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAmFn3u4IXM85e-B1XdEZIeXiCrwz0WeSQ",
+  authDomain: "warehouse-f4cb4.firebaseapp.com",
+  databaseURL: "https://warehouse-f4cb4-default-rtdb.firebaseio.com",
+  projectId: "warehouse-f4cb4",
+  storageBucket: "warehouse-f4cb4.firebasestorage.app",
+  messagingSenderId: "747108971740",
+  appId: "1:747108971740:web:4f357ef19cbe0f5aa27019",
+  measurementId: "G-0848WMR7E5"
+};
+// ▲▲▲ Replace with your Firebase project config ▲▲▲
+
+let currentPageName = 'dashboard';
+
+// Convert Firebase object-keyed data back to array safely
+function toArray(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  return Object.values(val);
+}
+
+// ==============================
+// FIREBASE
+// ==============================
+let fbDb = null;
+let fbReady = false;
+let lastSaveTs = 0;
+
+function isFirebaseConfigured() {
+  return FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.startsWith('REPLACE');
+}
+
+function updateFirebaseStatus(status) {
+  const el = document.getElementById('firebase-status');
+  if (!el) return;
+  const map = {
+    'connecting': ['⏳', '#ccc',    'Connecting...'],
+    'connected':  ['🟢', '#90ee90', 'Cloud Sync ON'],
+    'error':      ['🔴', '#ff8888', 'Sync Error (Local)'],
+    'local':      ['🔵', '#87ceeb', 'Local Mode']
+  };
+  const [icon, color, text] = map[status] || map['local'];
+  el.innerHTML = `<span style="color:${color};font-weight:600;">${icon} ${text}</span>`;
+}
+
+// Only called AFTER initial load — listens for OTHER users\'s changes
+function setupFirebaseListener() {
+  fbDb.ref('/wms/data').on('value', snap => {
+    const d = snap.val();
+    if (!d) return;
+    const fbTs = Number(d._ts) || 0;
+    // Only process updates from OTHER users (timestamp > our last save + buffer)
+    if (fbTs > lastSaveTs + 2000) {
+      products     = toArray(d.products);
+      transactions = toArray(d.transactions);
+      lastSaveTs   = fbTs;
+      refreshCurrentPage();
+    }
+  });
+}
+
+function initFirebase(callback) {
+  if (!isFirebaseConfigured()) {
+    products     = JSON.parse(localStorage.getItem('wms_products')     || '[]');
+    transactions = JSON.parse(localStorage.getItem('wms_transactions') || '[]');
+    updateFirebaseStatus('local');
+    callback();
     return;
   }
-  selectedFile = f;
-  fileNameEl.textContent = '✅  ' + f.name;
-  btnConvert.disabled = false;
-  alertBox.style.display = 'none';
-  statBox.style.display  = 'none';
-}
 
-// ── 날짜 변환 ─────────────────────────────────
-// SheetJS cellDates:true → UTC midnight Date 객체로 옴
-// getUTCFullYear/Month/Date 사용 → 어느 타임존에서도 날짜 오차 없음
-function fmtDate(val) {
-  if (val === null || val === undefined || val === '') return val;
-  let y, m, d;
-  if (val instanceof Date) {
-    if (isNaN(val.getTime())) return val;
-    y = val.getUTCFullYear();
-    m = val.getUTCMonth() + 1;
-    d = val.getUTCDate();
-  } else if (typeof val === 'number') {
-    // Excel 날짜 시리얼 fallback
-    const dt = new Date(Math.round((val - 25569) * 864e5));
-    if (isNaN(dt.getTime())) return val;
-    y = dt.getUTCFullYear();
-    m = dt.getUTCMonth() + 1;
-    d = dt.getUTCDate();
-  } else {
-    // 문자열 fallback
-    const dt = new Date(val);
-    if (isNaN(dt.getTime())) return val;
-    y = dt.getUTCFullYear();
-    m = dt.getUTCMonth() + 1;
-    d = dt.getUTCDate();
-  }
-  return `${y}. ${m}. ${d}`;
-}
+  updateFirebaseStatus('connecting');
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    fbDb = firebase.database();
 
-// ── 세미콜론 파싱 ──────────────────────────────
-function parseSemi(val) {
-  if (val === null || val === undefined || val === '') return [val];
-  const s     = String(val).trim();
-  const parts = s.split(';').map(p => p.trim()).filter(p => p !== '');
-  if (parts.length <= 1) return [val];   // 원본 유지 (trailing ';' 포함)
-  return parts;                          // 세미콜론 없는 개별 값
-}
-
-// ── 변환 메인 ─────────────────────────────────
-function transform(rows) {
-  const headers  = rows.slice(0, HEADER_ROWS);
-  const dataRows = rows.slice(HEADER_ROWS);
-  const newRows  = [];
-
-  // 전체 열 수 파악 (행마다 길이가 다를 수 있으므로 최대값 사용)
-  const totalCols = Math.max(...[...headers, ...dataRows].map(r => r.length));
-
-  for (const row of dataRows) {
-    // 행 길이를 totalCols 로 맞추고 복사 (짧은 행의 빈 셀 → null)
-    const r = Array.from({ length: totalCols }, (_, i) => row[i] ?? null);
-
-    // 날짜 변환
-    for (const c of DATE_COLS) {
-      if (r[c] !== null && r[c] !== undefined) r[c] = fmtDate(r[c]);
-    }
-
-    // 분리 대상 파싱
-    const sv   = {};
-    let   maxN = 1;
-    for (const c of SPLIT_COLS) {
-      sv[c] = parseSemi(r[c]);
-      if (sv[c].length > maxN) maxN = sv[c].length;
-    }
-
-    if (maxN === 1) {
-      newRows.push(r);
-    } else {
-      for (let i = 0; i < maxN; i++) {
-        const nr = [...r];
-        for (const c of SPLIT_COLS) {
-          nr[c] = i < sv[c].length ? sv[c][i] : null;
+    // ① Fetch current snapshot ONCE at startup
+    fbDb.ref('/wms/data').once('value').then(snap => {
+      const d = snap.val();
+      if (d && (d.products || d.transactions)) {
+        // Cloud has data → use it
+        products     = toArray(d.products);
+        transactions = toArray(d.transactions);
+        lastSaveTs   = Number(d._ts) || 0;
+      } else {
+        // First time or empty cloud → migrate from localStorage
+        const lp = JSON.parse(localStorage.getItem('wms_products')     || '[]');
+        const lt = JSON.parse(localStorage.getItem('wms_transactions') || '[]');
+        products     = lp;
+        transactions = lt;
+        if (lp.length || lt.length) {
+          lastSaveTs = Date.now();
+          fbDb.ref('/wms/data').set({ products, transactions, _ts: lastSaveTs });
         }
-        newRows.push(nr);
       }
-    }
+      fbReady = true;
+      updateFirebaseStatus('connected');
+      callback();
+      // ② After initial load done, start listening for OTHER users
+      setupFirebaseListener();
+    }).catch(err => {
+      console.error('Firebase fetch error:', err);
+      updateFirebaseStatus('error');
+      products     = JSON.parse(localStorage.getItem('wms_products')     || '[]');
+      transactions = JSON.parse(localStorage.getItem('wms_transactions') || '[]');
+      callback();
+    });
+  } catch(e) {
+    console.error('Firebase init error:', e);
+    updateFirebaseStatus('error');
+    products     = JSON.parse(localStorage.getItem('wms_products')     || '[]');
+    transactions = JSON.parse(localStorage.getItem('wms_transactions') || '[]');
+    callback();
   }
-
-  return [...headers, ...newRows];
 }
 
-// ── 변환 실행 ─────────────────────────────────
-function doConvert() {
-  if (!selectedFile) return;
+function saveAll() {
+  if (fbDb && fbReady) {
+    lastSaveTs = Date.now();
+    fbDb.ref('/wms/data').set({ products, transactions, _ts: lastSaveTs })
+      .catch(err => {
+        console.error('Firebase write error:', err);
+        toast('⚠️ Cloud sync failed — saved locally');
+        localStorage.setItem('wms_products',     JSON.stringify(products));
+        localStorage.setItem('wms_transactions', JSON.stringify(transactions));
+      });
+  } else {
+    localStorage.setItem('wms_products',     JSON.stringify(products));
+    localStorage.setItem('wms_transactions', JSON.stringify(transactions));
+  }
+  localStorage.setItem('wms_pnmap',          JSON.stringify(pnMap));
+  localStorage.setItem('wms_pncustomer',     JSON.stringify(pnCustomer));
+  localStorage.setItem('wms_pn_lastupdate',  pnLastUpdate);
+}
 
-  btnConvert.disabled    = true;
-  progWrap.style.display = 'block';
-  statBox.style.display  = 'none';
-  alertBox.style.display = 'none';
+function refreshCurrentPage() {
+  const p = currentPageName;
+  if (p==='dashboard') renderDashboard();
+  else if (p==='inbound')   renderTodayIn();
+  else if (p==='outbound')  renderTodayOut();
+  else if (p==='inventory') renderInventory();
+  else if (p==='location')  renderLocation();
+  else if (p==='history')   renderHistory();
+  else if (p==='products')  renderProducts();
+}
+
+function getToday() { return new Date().toISOString().split('T')[0]; }
+function getNow() { return new Date().toLocaleString('en-US'); }
+
+function genInNo() {
+  const d = new Date();
+  const seq = (transactions.filter(t => t.type==='입고' && t.date===getToday()).length+1).toString().padStart(3,'0');
+  return `IN${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${seq}`;
+}
+function genOutNo() {
+  const d = new Date();
+  const seq = (transactions.filter(t => t.type==='출고' && t.date===getToday()).length+1).toString().padStart(3,'0');
+  return `OUT${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${seq}`;
+}
+
+function getStock(pn) {
+  let qty = 0;
+  transactions.forEach(t => {
+    if (t.pn === pn) {
+      if (t.type === '입고') qty += Number(t.qty);
+      else qty -= Number(t.qty);
+    }
+  });
+  return qty;
+}
+
+// 특정 PN + 로케이션의 재고 계산
+function getStockByLocation(pn, location) {
+  let qty = 0;
+  transactions.forEach(t => {
+    if (t.pn === pn && t.location === location) {
+      if (t.type === '입고') qty += Number(t.qty);
+      else qty -= Number(t.qty);
+    }
+  });
+  return qty;
+}
+
+// 특정 로케이션에 있는 제품 목록 (재고 > 0)
+function getProductsAtLocation(loc) {
+  const pnSet = new Set();
+  transactions.forEach(t => { if (t.location === loc) pnSet.add(t.pn); });
+  return Array.from(pnSet).map(pn => {
+    const prod = products.find(p => (p.pn||p.code) === pn) || {};
+    const stock = getStockByLocation(pn, loc);
+    return { pn, desc: prod.desc||prod.name||'', unit: prod.unit||'EA', stock };
+  }).filter(p => p.stock > 0);
+}
+
+// ==============================
+// NAVIGATION
+// ==============================
+function showPage(name, link) {
+  currentPageName = name;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if (link) link.classList.add('active');
+  // Close any open dropdowns
+  document.querySelectorAll('.ac-list').forEach(l => l.style.display='none');
+  _renderPage(name);
+}
+function _renderPage(name) {
+  if (name==='dashboard') renderDashboard();
+  if (name==='inventory') renderInventory();
+  if (name==='location') renderLocation();
+  if (name==='inbound') { refreshLocationSelects(); document.getElementById('in-date').value=getToday(); renderTodayIn(); setTimeout(()=>{ const f=document.getElementById('in-pn'); if(f) f.focus(); },100); }
+  if (name==='outbound') { document.getElementById('out-date').value=getToday(); renderTodayOut(); }
+  if (name==='products') { refreshLocationSelects(); renderProducts(); }
+  if (name==='pnmgmt') renderPNMgmt();
+}
+
+// ==============================
+// TOAST
+// ==============================
+function toast(msg, duration=2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), duration);
+}
+
+// ==============================
+// AUTOCOMPLETE (Part Number)
+// ==============================
+let acHighlight = { in:-1, out:-1, prod:-1 };
+let acResults = { in:[], out:[], prod:[] };
+let acLocHighlight = { 'in':-1, 'prod-loc':-1 };
+let acLocResults = { 'in':[], 'prod-loc':[] };
+
+function onLocationInput(prefix) {
+  const inputId = prefix === 'prod-loc' ? 'prod-location' : prefix + '-location';
+  const listId = prefix + '-location-list';
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(listId);
+  const val = input.value.trim().toUpperCase();
+  acLocHighlight[prefix] = -1;
+  const results = val ? LOCATIONS.filter(l => l.toUpperCase().includes(val)).slice(0, 40) : LOCATIONS.slice(0, 30);
+  acLocResults[prefix] = results;
+  if (!results.length) { list.style.display = 'none'; return; }
+  list.innerHTML = results.map((loc, i) => {
+    const locHL = val ? loc.replace(new RegExp(val.replace(/[-]/g,'\\$&'), 'gi'), m => `<mark style="background:#ffe082">${m}</mark>`) : loc;
+    return `<div class="ac-item" data-idx="${i}" onmousedown="selectLocation('${prefix}','${loc}')" onmouseover="setLocHL('${prefix}',${i})"><div class="pn">${locHL}</div></div>`;
+  }).join('') + `<div class="ac-count">Showing ${results.length} of ${LOCATIONS.length} locations</div>`;
+  list.style.display = 'block';
+}
+function selectLocation(prefix, loc) {
+  const inputId = prefix === 'prod-loc' ? 'prod-location' : prefix + '-location';
+  document.getElementById(inputId).value = loc;
+  const listId = prefix + '-location-list';
+  document.getElementById(listId).style.display = 'none';
+}
+function setLocHL(prefix, idx) {
+  acLocHighlight[prefix] = idx;
+  const listId = prefix + '-location-list';
+  document.querySelectorAll(`#${listId} .ac-item`).forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+  });
+}
+function onLocationKeyDown(e, prefix) {
+  const listId = prefix + '-location-list';
+  const items = document.querySelectorAll(`#${listId} .ac-item`);
+  if (e.key === 'ArrowDown') { e.preventDefault(); setLocHL(prefix, Math.min(acLocHighlight[prefix]+1, items.length-1)); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); setLocHL(prefix, Math.max(acLocHighlight[prefix]-1, 0)); }
+  else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (acLocHighlight[prefix] >= 0 && acLocResults[prefix][acLocHighlight[prefix]]) {
+      selectLocation(prefix, acLocResults[prefix][acLocHighlight[prefix]]);
+    }
+  } else if (e.key === 'Escape') {
+    document.getElementById(listId).style.display = 'none';
+  }
+}
+
+// Split PN and Batch No. on "/" when quantity is entered
+function splitPNBatch() {
+  const pnField = document.getElementById('in-pn');
+  const lotField = document.getElementById('in-lot');
+  if (!pnField) return;
+  const val = pnField.value;
+  if (val.includes('/')) {
+    const slashIdx = val.indexOf('/');
+    const pnPart  = val.substring(0, slashIdx).trim();
+    const lotPart = val.substring(slashIdx + 1).trim();
+    pnField.value = pnPart;
+    if (lotField && !lotField.value) lotField.value = lotPart;
+    // Refresh autocomplete after split
+    onPNInput('in');
+  }
+}
+
+function onPNInput(prefix) {
+  const input = document.getElementById(prefix+'-pn');
+  const list = document.getElementById(prefix+'-pn-list');
+  const val = input.value.trim().toUpperCase();
+  acHighlight[prefix] = -1;
+
+  if (!val) {
+    // Show first 20 when empty / focused
+    const keys = Object.keys(pnMap).slice(0, 20);
+    acResults[prefix] = keys;
+    renderACList(prefix, keys, '');
+    return;
+  }
+
+  // Search: PN starts with val first, then contains, then desc contains
+  const allKeys = Object.keys(pnMap);
+  const starts = allKeys.filter(k => k.toUpperCase().startsWith(val));
+  const contains = allKeys.filter(k => !k.toUpperCase().startsWith(val) && k.toUpperCase().includes(val));
+  const descMatch = allKeys.filter(k => !k.toUpperCase().includes(val) && (pnMap[k]||'').toUpperCase().includes(val));
+  const results = [...starts, ...contains, ...descMatch].slice(0, 30);
+  acResults[prefix] = results;
+  renderACList(prefix, results, val);
+
+  // Auto-fill if exact match
+  if (pnMap[input.value.trim()]) {
+    selectPN(prefix, input.value.trim());
+  } else {
+    clearDescField(prefix);
+  }
+}
+
+function renderACList(prefix, results, query) {
+  const list = document.getElementById(prefix+'-pn-list');
+  if (!results.length) { list.style.display='none'; return; }
+  list.innerHTML = results.map((pn, i) => {
+    const desc = pnMap[pn] || '';
+    const pnHL = query ? pn.replace(new RegExp(query,'gi'), m=>`<mark style="background:#ffe082">${m}</mark>`) : pn;
+    return `<div class="ac-item" data-idx="${i}" onmousedown="selectPN('${prefix}','${pn}')" onmouseover="setACHL('${prefix}',${i})">
+      <div class="pn">${pnHL}</div>
+      <div class="desc">${desc}</div>
+    </div>`;
+  }).join('') + `<div class="ac-count">Showing ${results.length} of ${Object.keys(pnMap).length}</div>`;
+  list.style.display = 'block';
+}
+
+function setACHL(prefix, idx) {
+  acHighlight[prefix] = idx;
+  document.querySelectorAll(`#${prefix}-pn-list .ac-item`).forEach((el,i)=>{
+    el.classList.toggle('active', i===idx);
+  });
+}
+
+function onPNKeyDown(e, prefix) {
+  const list = document.getElementById(prefix+'-pn-list');
+  if (list.style.display==='none') return;
+  const items = list.querySelectorAll('.ac-item');
+  if (e.key==='ArrowDown') { e.preventDefault(); setACHL(prefix, Math.min(acHighlight[prefix]+1, items.length-1)); }
+  else if (e.key==='ArrowUp') { e.preventDefault(); setACHL(prefix, Math.max(acHighlight[prefix]-1, 0)); }
+  else if (e.key==='Enter' || e.key==='Tab') {
+    if (acHighlight[prefix] >= 0 && acResults[prefix][acHighlight[prefix]]) {
+      e.preventDefault();
+      selectPN(prefix, acResults[prefix][acHighlight[prefix]]);
+    }
+  } else if (e.key==='Escape') { list.style.display='none'; }
+}
+
+function selectPN(prefix, pn) {
+  document.getElementById(prefix+'-pn').value = pn;
+  document.getElementById(prefix+'-pn-list').style.display = 'none';
+  const desc = pnMap[pn] || '';
+  if (prefix==='in') {
+    document.getElementById('in-desc').value = desc;
+    const customer = pnCustomer[pn] || '';
+    document.getElementById('in-customer').value = customer;
+    document.getElementById('in-customer-list').style.display='none';
+  } else if (prefix==='out') {
+    document.getElementById('out-desc').value = desc;
+    const customer = pnCustomer[pn] || '';
+    document.getElementById('out-customer').value = customer;
+    const unit = document.getElementById('out-unit').value || 'EA';
+    const stock = getStock(pn);
+    document.getElementById('out-current-stock').value = `${stock} ${unit}`;
+  } else if (prefix==='prod') {
+    document.getElementById('prod-desc-field').value = desc;
+  }
+}
+
+// ==============================
+// CUSTOMER AUTOCOMPLETE
+// ==============================
+let customerACHighlight = -1;
+let customerACResults = [];
+
+function onCustomerInput() {
+  const input = document.getElementById('in-customer');
+  const list = document.getElementById('in-customer-list');
+  const val = (input.value || '').toUpperCase();
+  customerACHighlight = -1;
+
+  let results;
+  if (!val) {
+    results = CUSTOMER_LIST.slice(0, 20);
+  } else {
+    const starts = CUSTOMER_LIST.filter(c => c.toUpperCase().startsWith(val));
+    const contains = CUSTOMER_LIST.filter(c => !c.toUpperCase().startsWith(val) && c.toUpperCase().includes(val));
+    results = [...starts, ...contains].slice(0, 20);
+  }
+  customerACResults = results;
+
+  if (!results.length) { list.style.display='none'; return; }
+  list.innerHTML = results.map((c, i) => {
+    const hl = val ? c.replace(new RegExp(val,'gi'), m=>`<mark style="background:#ffe082">${m}</mark>`) : c;
+    return `<div class="ac-item" data-idx="${i}" onmousedown="selectCustomer('${c.replace(/'/g,"\'")}')" onmouseover="setCustomerACHL(${i})">
+      <div class="pn">${hl}</div>
+    </div>`;
+  }).join('');
+  list.style.display='block';
+}
+
+function setCustomerACHL(idx) {
+  customerACHighlight = idx;
+  document.querySelectorAll('#in-customer-list .ac-item').forEach((el,i)=>{
+    el.classList.toggle('active', i===idx);
+  });
+}
+
+function onCustomerKeyDown(e) {
+  const list = document.getElementById('in-customer-list');
+  if (list.style.display==='none') return;
+  const items = list.querySelectorAll('.ac-item');
+  if (e.key==='ArrowDown') { e.preventDefault(); setCustomerACHL(Math.min(customerACHighlight+1, items.length-1)); }
+  else if (e.key==='ArrowUp') { e.preventDefault(); setCustomerACHL(Math.max(customerACHighlight-1, 0)); }
+  else if (e.key==='Enter' || e.key==='Tab') {
+    if (customerACHighlight >= 0 && customerACResults[customerACHighlight]) {
+      e.preventDefault();
+      selectCustomer(customerACResults[customerACHighlight]);
+    }
+  } else if (e.key==='Escape') { list.style.display='none'; }
+}
+
+function selectCustomer(c) {
+  document.getElementById('in-customer').value = c;
+  document.getElementById('in-customer-list').style.display='none';
+}
+
+function clearDescField(prefix) {
+  if (prefix==='in') document.getElementById('in-desc').value='';
+  else if (prefix==='out') { document.getElementById('out-desc').value=''; document.getElementById('out-current-stock').value=''; }
+  else if (prefix==='prod') document.getElementById('prod-desc-field').value='';
+}
+
+// Close AC on outside click
+document.addEventListener('click', function(e) {
+  ['in','out','prod'].forEach(prefix => {
+    const input = document.getElementById(prefix+'-pn');
+    const list = document.getElementById(prefix+'-pn-list');
+    if (input && list && !input.contains(e.target) && !list.contains(e.target)) {
+      list.style.display='none';
+    }
+  });
+  // Customer autocomplete
+  const custInput = document.getElementById('in-customer');
+  const custList = document.getElementById('in-customer-list');
+  if (custInput && custList && !custInput.contains(e.target) && !custList.contains(e.target)) {
+    custList.style.display='none';
+  }
+  // Edit modal customer autocomplete
+  const editCustInput = document.getElementById('pnEditCustomer');
+  const editCustList = document.getElementById('pnEditCustomer-list');
+  if (editCustInput && editCustList && !editCustInput.contains(e.target) && !editCustList.contains(e.target)) {
+    editCustList.style.display='none';
+  }
+});
+
+// ==============================
+// LOCATION SELECTS
+// ==============================
+function refreshLocationSelects() {
+  // Location inputs are text inputs with autocomplete - no population needed
+  // Just ensure the lists are closed when switching pages
+  ['in-location-list','prod-loc-location-list'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+}
+
+// ==============================
+// INBOUND
+// ==============================
+function registerInbound() {
+  const date = document.getElementById('in-date').value;
+  const pn = document.getElementById('in-pn').value.trim();
+  const qty = parseInt(document.getElementById('in-qty').value);
+  const location = getLocationValue('in');
+
+  if (!date || !pn || !qty || qty<=0 || !location) { toast('⚠️ Please fill in required fields (Date, Part Number, Qty, Location)'); return; }
+
+  const desc = pnMap[pn] || document.getElementById('in-desc').value || '';
+  const txn = {
+    id: Date.now(),
+    type: '입고', date, datetime: getNow(),
+    pn, desc, qty, unit: document.getElementById('in-unit').value,
+    location, customer: document.getElementById('in-customer').value,
+    manager: document.getElementById('in-manager').value,
+    lot: document.getElementById('in-lot').value,
+    note: document.getElementById('in-note').value,
+  };
+  transactions.push(txn);
+
+  // Auto-register product if not already in products list
+  let prod = products.find(p => (p.pn || p.code) === pn);
+  if (!prod) {
+    products.push({
+      pn, code: pn, desc, name: desc,
+      unit: txn.unit, location,
+      category: '', minStock: 0,
+      addedAt: getNow()
+    });
+  } else {
+    // Update location to latest inbound location
+    prod.location = location;
+  }
+
+  saveAll();
+  toast(`✅ Inbound registered: ${pn} ${qty}${txn.unit}`);
+  clearInForm();
+  document.getElementById('in-date').value = getToday();
+  renderTodayIn();
+}
+
+function renderTodayIn() {
+  const tbody = document.getElementById('today-in-tbody');
+  const today = getToday();
+  const rows = transactions.filter(t=>t.type==='입고' && t.date===today);
+  if (!rows.length) { tbody.innerHTML='<tr><td colspan="9"><div class="empty-state"><div class="icon">📭</div>No inbound records today</div></td></tr>'; return; }
+  tbody.innerHTML = rows.slice().reverse().map(t=>`
+    <tr><td><strong>${t.pn}</strong></td><td style="font-size:0.82rem">${t.desc||'-'}</td>
+    <td>${t.qty} ${t.unit}</td><td>${t.location}</td><td>${t.customer||'-'}</td>
+    <td>${t.manager||'-'}</td><td>${t.lot||'-'}</td><td>${(t.datetime||'').split(' ')[1]||''}</td>
+    <td><button class="btn btn-danger" onclick="deleteTransaction(${t.id},'in')">Delete</button></td></tr>`).join('');
+}
+
+function clearInForm() {
+  ['in-pn','in-desc','in-qty','in-customer','in-manager','in-lot','in-note','in-loc-zone'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('in-unit').value='EA';
+  document.getElementById('in-loc-pos').value='';
+  document.getElementById('in-pn-list').style.display='none';
+  document.getElementById('in-customer-list').style.display='none';
+  document.getElementById('in-zone-list').style.display='none';
+}
+
+// ==============================
+// OUTBOUND
+// ==============================
+function registerOutbound() {
+  const date = document.getElementById('out-date').value;
+  const pn = document.getElementById('out-pn').value.trim();
+  const qty = parseInt(document.getElementById('out-qty').value);
+
+  if (!date || !pn || !qty || qty<=0) { toast('⚠️ Please fill in required fields (Date, Part Number, Qty)'); return; }
+
+  const stock = getStock(pn);
+  if (qty > stock) { toast(`⛔ Insufficient stock! Current stock: ${stock}`); return; }
+
+  const desc = pnMap[pn] || document.getElementById('out-desc').value || '';
+  const unit = document.getElementById('out-unit').value || 'EA';
+  const location = getLocationValue('out');
+  const txn = {
+    id: Date.now(),
+    type: '출고', date, datetime: getNow(),
+    pn, desc,
+    lot: document.getElementById('out-lot').value,
+    customer: document.getElementById('out-customer').value,
+    qty, unit,
+    location,
+    dest: document.getElementById('out-dest').value,
+    manager: document.getElementById('out-manager').value,
+    purpose: document.getElementById('out-purpose').value,
+    note: document.getElementById('out-note').value,
+  };
+  transactions.push(txn);
+  saveAll();
+  toast(`✅ Outbound registered: ${pn} ${qty}${unit}`);
+  clearOutForm();
+  document.getElementById('out-date').value = getToday();
+  renderTodayOut();
+}
+
+function renderTodayOut() {
+  const tbody = document.getElementById('today-out-tbody');
+  const today = getToday();
+  const rows = transactions.filter(t=>t.type==='출고' && t.date===today);
+  if (!rows.length) { tbody.innerHTML='<tr><td colspan="10"><div class="empty-state"><div class="icon">📭</div>No outbound records today</div></td></tr>'; return; }
+  tbody.innerHTML = rows.slice().reverse().map(t=>`
+    <tr><td><strong>${t.pn}</strong></td><td style="font-size:0.82rem">${t.desc||'-'}</td>
+    <td>${t.lot||'-'}</td><td>${t.customer||'-'}</td>
+    <td>${t.qty} ${t.unit||'EA'}</td><td>${t.dest||'-'}</td>
+    <td>${t.purpose||'-'}</td><td>${t.manager||'-'}</td>
+    <td>${(t.datetime||'').split(' ')[1]||''}</td>
+    <td><button class="btn btn-danger" onclick="deleteTransaction(${t.id},'out')">Delete</button></td></tr>`).join('');
+}
+
+function clearOutForm() {
+  ['out-pn','out-desc','out-lot','out-customer','out-qty','out-dest','out-manager','out-note','out-current-stock','out-loc-zone'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('out-unit').value='EA';
+  document.getElementById('out-loc-pos').value='';
+  document.getElementById('out-purpose').value='판매';
+  document.getElementById('out-pn-list').style.display='none';
+  document.getElementById('out-zone-list').style.display='none';
+}
+
+// ==============================
+// DELETE TRANSACTION
+// ==============================
+function deleteTransaction(id, type) {
+  if (!confirm('Delete this record? / 確定刪除？')) return;
+  transactions = transactions.filter(t=>t.id!==id);
+  saveAll();
+  toast('🗑️ Deleted / 已刪除');
+  if (type==='in') renderTodayIn();
+  if (type==='out') renderTodayOut();
+}
+
+// ==============================
+// INVENTORY
+// ==============================
+function renderInventory() {
+  const tbody = document.getElementById('inv-tbody');
+  const search = (document.getElementById('inv-search').value||'').toLowerCase();
+  const filter = document.getElementById('inv-filter').value;
+
+  // 트랜잭션에서 (PN + Location) 고유 조합 추출
+  const seen = new Map();
+  transactions.forEach(t => {
+    const key = `${t.pn}__${t.location}`;
+    if (!seen.has(key)) {
+      const prod = products.find(p => (p.pn||p.code) === t.pn) || {};
+      seen.set(key, {
+        pn: t.pn,
+        desc: t.desc || prod.desc || prod.name || '',
+        location: t.location || '-',
+        unit: t.unit || prod.unit || 'EA',
+        category: prod.category || '-',
+        minStock: Number(prod.minStock) || 0,
+        lots: new Set(),
+      });
+    }
+    // 입고 트랜잭션의 배치 번호 수집
+    if (t.type === '입고' && t.lot) {
+      const entry = seen.get(`${t.pn}__${t.location}`);
+      if (entry) entry.lots.add(t.lot);
+    }
+  });
+
+  let rows = Array.from(seen.values()).map(item => {
+    const stock = getStockByLocation(item.pn, item.location);
+    const minStock = item.minStock;
+    let status, badgeClass;
+    if (stock===0)         { status='Out of Stock'; badgeClass='badge-zero'; }
+    else if (stock<minStock){ status='Low Stock';   badgeClass='badge-low';  }
+    else                   { status='Normal';       badgeClass='badge-ok';   }
+    const lotText = item.lots && item.lots.size > 0 ? [...item.lots].join(', ') : '-';
+    return {...item, stock, status, badgeClass, lotText};
+  });
+
+  if (search) rows = rows.filter(r=>r.pn.toLowerCase().includes(search)||(r.desc||'').toLowerCase().includes(search));
+  if (filter==='ok')   rows = rows.filter(r=>r.status==='Normal');
+  if (filter==='low')  rows = rows.filter(r=>r.status==='Low Stock');
+  if (filter==='zero') rows = rows.filter(r=>r.status==='Out of Stock');
+
+  if (!rows.length) { tbody.innerHTML='<tr><td colspan="9"><div class="empty-state"><div class="icon">📦</div>No matching inventory</div></td></tr>'; return; }
+  tbody.innerHTML = rows.map(r=>`
+    <tr><td><strong>${r.pn}</strong></td><td style="font-size:0.85rem">${r.desc||'-'}</td>
+    <td style="font-size:0.82rem;color:#2d6a9f;">${r.lotText}</td>
+    <td>${r.category||'-'}</td><td><strong>${r.stock}</strong></td>
+    <td>${r.unit||'EA'}</td><td>${r.minStock||0}</td>
+    <td>${r.location||'-'}</td><td><span class="badge ${r.badgeClass}">${r.status}</span></td></tr>`).join('');
+}
+
+// ==============================
+// LOCATION
+// ==============================
+function renderLocation() {
+  const container = document.getElementById('location-areas');
+  if (!container) return;
+
+  // Area별로 Zone 그룹화
+  const areaMap = {};
+  for (const zone of ZONES) {
+    const area = zone.split('-')[0];
+    if (!areaMap[area]) areaMap[area] = [];
+    areaMap[area].push(zone);
+  }
+
+  container.innerHTML = Object.entries(areaMap).map(([area, zones]) => {
+    const zonesHtml = zones.map(zone => {
+      const positions = WAREHOUSE_MAP[zone];
+      const cellsHtml = positions.map(pos => {
+        const loc = `${zone}-${pos}`;
+        const items = getProductsAtLocation(loc);
+        if (!items.length) {
+          return `<div class="loc-cell empty-loc" onclick="showLocDetail('${loc}')"><div class="loc-name">${loc}</div><div class="loc-qty empty">-</div></div>`;
+        } else {
+          const totalStock = items.reduce((s,p)=>s+p.stock, 0);
+          const hasLow = items.some(p=>p.stock < (Number((products.find(pp=>(pp.pn||pp.code)===p.pn)||{}).minStock)||0) && p.stock > 0);
+          const cellClass = hasLow ? 'low-stock' : 'occupied';
+          const qtyClass  = hasLow ? 'low' : 'ok';
+          const pnList = items.map(p=>p.pn).join(', ');
+          return `<div class="loc-cell ${cellClass}" onclick="showLocDetail('${loc}')"><div class="loc-name">${loc}</div><div class="loc-item">${pnList}</div><div class="loc-qty ${qtyClass}">${totalStock}</div></div>`;
+        }
+      }).join('');
+      return `<div class="zone-row"><div class="zone-label">Zone ${zone}</div><div class="location-grid-zone">${cellsHtml}</div></div>`;
+    }).join('');
+    return `<div class="card"><h2>📦 Area ${area}</h2>${zonesHtml}</div>`;
+  }).join('');
+}
+function showLocDetail(loc) {
+  const items = getProductsAtLocation(loc);
+  document.getElementById('locModal-title').textContent = `📍 Location: ${loc}`;
+  if (!items.length) {
+    document.getElementById('locModal-content').innerHTML='<p style="color:#aaa; text-align:center; padding:20px;">No products at this location</p>';
+  } else {
+    document.getElementById('locModal-content').innerHTML = items.map(p => {
+      // 해당 PN + 로케이션의 입고 트랜잭션에서 배치 번호 수집
+      const lots = [...new Set(
+        transactions
+          .filter(t => t.pn === p.pn && t.location === loc && t.type === '입고' && t.lot)
+          .map(t => t.lot)
+      )];
+      const lotText = lots.length ? lots.join(', ') : '-';
+
+      return `
+      <div style="border-bottom:1px solid #eee;padding:10px 0;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:0.95rem;">${p.pn}</div>
+            <div style="font-size:0.82rem;color:#666;margin-top:2px;">${p.desc||''}</div>
+            <div style="font-size:0.8rem;color:#888;margin-top:4px;">
+              <span style="color:#aaa;">Batch / LOT：</span>
+              <span style="color:#2d6a9f;font-weight:600;">${lotText}</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;margin-left:12px;">
+            <span style="font-weight:700;font-size:1rem;">${p.stock} ${p.unit||'EA'}</span>
+            <button class="btn" style="padding:3px 10px;font-size:0.78rem;background:#2d6a9f;color:#fff;border:none;border-radius:5px;cursor:pointer;"
+                    onclick="openMoveModal('${p.pn}','${loc}',${p.stock})">🔄 Move</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('locModal').classList.add('show');
+}
+function closeModal() { document.getElementById('locModal').classList.remove('show'); }
+
+// ==============================
+// INVENTORY RESET
+// ==============================
+function openResetModal() {
+  document.getElementById('reset-confirm-input').value = '';
+  document.getElementById('reset-confirm-btn').disabled = true;
+  document.getElementById('resetModal').classList.add('show');
+}
+function closeResetModal() {
+  document.getElementById('resetModal').classList.remove('show');
+}
+function executeReset() {
+  if (document.getElementById('reset-confirm-input').value !== '070305') return;
+  products     = [];
+  transactions = [];
+  // Firebase 및 localStorage 초기화
+  if (fbDb && fbReady) {
+    const ts = Date.now();
+    lastSaveTs = ts;
+    fbDb.ref('/wms/data').set({ products: [], transactions: [], _ts: ts })
+      .then(() => { toast('✅ Inventory initialized. All records cleared.'); })
+      .catch(() => { toast('⚠️ Cloud reset failed. Cleared locally only.'); });
+  }
+  localStorage.removeItem('wms_products');
+  localStorage.removeItem('wms_transactions');
+  closeResetModal();
+  renderDashboard();
+  toast('✅ Inventory initialized. All records cleared.');
+}
+
+// ==============================
+// LOCATION MOVE
+// ==============================
+let _movePn = '', _moveLoc = '';
+
+function openMoveModal(pn, fromLoc, available) {
+  _movePn  = pn;
+  _moveLoc = fromLoc;
+  const prod = products.find(p=>(p.pn||p.code)===pn) || {};
+  document.getElementById('move-pn-display').textContent   = pn;
+  document.getElementById('move-desc-display').textContent = prod.desc || prod.name || '';
+  document.getElementById('move-from-display').textContent = fromLoc;
+  document.getElementById('move-available').textContent    = available;
+  document.getElementById('move-qty').value   = available;
+  document.getElementById('move-qty').max     = available;
+  document.getElementById('move-loc-zone').value = '';
+  document.getElementById('move-loc-pos').value  = '';
+  document.getElementById('move-zone-list').style.display = 'none';
+  // Position 옵션 채우기
+  document.getElementById('move-loc-pos').innerHTML = POS_OPTIONS;
+  // acZoneHL / acZoneRes 에 'move' 키 추가
+  acZoneHL['move']  = -1;
+  acZoneRes['move'] = [];
+  document.getElementById('locModal').classList.remove('show');
+  document.getElementById('moveModal').classList.add('show');
+}
+
+function closeMoveModal() {
+  document.getElementById('moveModal').classList.remove('show');
+}
+
+function confirmMove() {
+  const toLoc = getLocationValue('move');
+  const qty   = parseInt(document.getElementById('move-qty').value);
+  const avail = parseInt(document.getElementById('move-available').textContent) || 0;
+
+  if (!toLoc)          { toast('⚠️ Please select new location (Zone + Position)'); return; }
+  if (toLoc === _moveLoc) { toast('⚠️ New location is same as current location'); return; }
+  if (!qty || qty <= 0)   { toast('⚠️ Qty must be greater than 0'); return; }
+  if (qty > avail)         { toast(`⚠️ Cannot move more than available stock (${avail})`); return; }
+
+  const now  = getNow();
+  const date = now.split(' ')[0];
+  const prod = products.find(p=>(p.pn||p.code)===_movePn) || {};
+  const desc = prod.desc || prod.name || '';
+  const unit = prod.unit || 'EA';
+
+  // 구 위치에서 출고 (이동)
+  transactions.push({
+    id: Date.now(),
+    type: '출고', date, datetime: now,
+    pn: _movePn, desc, qty, unit,
+    location: _moveLoc,
+    dest: toLoc,
+    purpose: '이동',
+    note: `Location Transfer → ${toLoc}`,
+    manager: ''
+  });
+
+  // 신 위치로 입고 (이동)
+  transactions.push({
+    id: Date.now() + 1,
+    type: '입고', date, datetime: now,
+    pn: _movePn, desc, qty, unit,
+    location: toLoc,
+    customer: '',
+    note: `Location Transfer ← ${_moveLoc}`,
+    manager: ''
+  });
+
+  saveAll();
+  closeMoveModal();
+  toast(`✅ Moved ${_movePn} (${qty}${unit}): ${_moveLoc} → ${toLoc}`);
+  renderLocation();
+}
+
+// ==============================
+// HISTORY
+// ==============================
+function renderHistory() {
+  const tbody = document.getElementById('hist-tbody');
+  const start = document.getElementById('hist-start').value;
+  const end = document.getElementById('hist-end').value;
+  const type = document.getElementById('hist-type').value;
+  const product = document.getElementById('hist-product').value.toLowerCase();
+  let rows = [...transactions];
+  if (start) rows=rows.filter(t=>t.date>=start);
+  if (end) rows=rows.filter(t=>t.date<=end);
+  if (type!=='all') rows=rows.filter(t=>t.type===type);
+  if (product) rows=rows.filter(t=>(t.pn||'').toLowerCase().includes(product)||(t.desc||t.productName||'').toLowerCase().includes(product)||(t.productCode||'').toLowerCase().includes(product));
+  rows.sort((a,b)=>b.id-a.id);
+  document.getElementById('hist-count').textContent=`Total: ${rows.length} records`;
+  if (!rows.length) { tbody.innerHTML='<tr><td colspan="9"><div class="empty-state"><div class="icon">📭</div>No results found</div></td></tr>'; return; }
+  tbody.innerHTML=rows.map((t,i)=>`
+    <tr><td>${rows.length-i}</td><td>${t.datetime}</td>
+    <td><span class="badge ${t.type==='입고'?'badge-in':'badge-out'}">${t.type==='입고'?'Inbound':'Outbound'}</span></td>
+    <td><strong>${t.pn||t.productCode||'-'}</strong></td>
+    <td style="font-size:0.82rem">${t.desc||t.productName||'-'}</td>
+    <td><strong>${t.qty}</strong> ${t.unit||''}</td>
+    <td>${t.location||t.dest||'-'}</td>
+    <td>${t.manager||'-'}</td>
+    <td>${t.note||'-'}</td></tr>`).join('');
+}
+// ==============================
+// ==============================
+// SAP FILE LOCATION LOOKUP
+// ==============================
+function handleSapDrop(event) {
+  event.preventDefault();
+  document.getElementById('sap-drop-area').style.borderColor = '#2d6a9f';
+  const file = event.dataTransfer.files[0];
+  if (file) processSapFile(file);
+}
+
+function processSapFile(file) {
+  if (!file) return;
+  const status = document.getElementById('sap-status');
+  status.innerHTML = '<span style="color:#2d6a9f;">⏳ Reading file...</span>';
 
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = function(e) {
     try {
       const data = new Uint8Array(e.target.result);
-      const wb   = XLSX.read(data, { type: 'array', cellDates: true });
+      const wb   = XLSX.read(data, { type: 'array', cellText: false, cellDates: true });
+      const ws   = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
-      // before 시트 또는 첫 번째 시트
-      const sheetName = wb.SheetNames.includes('before')
-                        ? 'before' : wb.SheetNames[0];
-      const ws        = wb.Sheets[sheetName];
+      if (!rows.length) { status.innerHTML = '⚠️ File is empty'; return; }
 
-      // 2차원 배열로 변환
-      const rows    = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
-      const before  = rows.length - HEADER_ROWS;
+      const G_COL  = 6;   // G열 = index 6 (MATERIAL / PN)
+      const AH_COL = 33;  // AH열 = index 33 (BATCH PROPOSAL)
 
-      // 변환
-      const outRows = transform(rows);
-      const after   = outRows.length - HEADER_ROWS;
+      let matched = 0, total = 0;
+
+      const newRows = rows.map((row, rowIdx) => {
+        const newRow = Array.isArray(row) ? [...row] : [];
+
+        if (rowIdx === 0) {
+          // 헤더행: G열 앞에 'WH Stock', 'WH Location' 두 컬럼 삽입
+          newRow.splice(G_COL, 0, 'WH Location', 'WH Stock');
+          return newRow;
+        }
+
+        const pn    = String(newRow[G_COL]  || '').trim();
+        const ahRaw = String(newRow[AH_COL] || '').trim();
+        // AH열: ';' 이전 → ':' 이전 = 배치 번호 (예: F262863061: 500.000; → F262863061)
+        const batchFull = ahRaw.split(';')[0].trim();
+        const batchNum  = batchFull.split(':')[0].trim();
+
+        let location   = '';
+        let totalStock = '';
+
+        if (pn && batchNum) {
+          total++;
+          // PN AND 배치 번호가 모두 일치하는 입고 트랜잭션에서 로케이션 추출
+          const locSet = new Set();
+          transactions.forEach(t => {
+            if (t.type === '입고' && t.pn === pn && t.lot === batchNum && t.location) {
+              locSet.add(t.location);
+            }
+          });
+
+          const locList   = [];
+          const stockList = [];
+          locSet.forEach(loc => {
+            const s = getStockByLocation(pn, loc);
+            if (s > 0) {
+              locList.push(loc);
+              stockList.push(s);
+            }
+          });
+
+          location   = locList.join(' / ');
+          totalStock = stockList.length > 0 ? stockList.join(' / ') : '';
+          if (location) matched++;
+        }
+
+        // G열 앞에 WH Location, WH Stock 순서로 삽입
+        newRow.splice(G_COL, 0, location, totalStock);
+        return newRow;
+      });
 
       // 새 워크북 생성
-      const outWb = XLSX.utils.book_new();
-      const outWs = XLSX.utils.aoa_to_sheet(outRows);
-      XLSX.utils.book_append_sheet(outWb, outWs, 'after');
+      const newWs = XLSX.utils.aoa_to_sheet(newRows);
 
-      // 다운로드
-      const baseName = selectedFile.name.replace(/\.xlsx$/i, '');
-      XLSX.writeFile(outWb, `${baseName}_converted.xlsx`);
+      // WH Location, WH Stock 헤더 셀 강조 (노란 배경)
+      const hdrLoc   = newWs[XLSX.utils.encode_cell({r:0, c:G_COL})];
+      const hdrStock = newWs[XLSX.utils.encode_cell({r:0, c:G_COL+1})];
+      const hdrStyle = { fill:{fgColor:{rgb:'FFFF00'}}, font:{bold:true} };
+      if (hdrLoc)   hdrLoc.s   = hdrStyle;
+      if (hdrStock) hdrStock.s = hdrStyle;
 
-      // 통계 표시
-      document.getElementById('stat-before').textContent = before + '행';
-      document.getElementById('stat-after').textContent  = after  + '행';
-      statBox.style.display = 'block';
+      const newWb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(newWb, newWs, wb.SheetNames[0]);
 
-      showAlert('success',
-        `✅ 변환 완료! "${baseName}_converted.xlsx" 파일이 다운로드 되었습니다.`);
+      // 파일명: 원래이름 + _Location.xlsx
+      const baseName = file.name.replace(/\.(xls|xlsx)$/i, '');
+      const outName  = baseName + '_Location.xlsx';
 
-    } catch (err) {
-      showAlert('danger', '❌ 오류: ' + err.message);
-    } finally {
-      btnConvert.disabled    = false;
-      progWrap.style.display = 'none';
+      XLSX.writeFile(newWb, outName);
+
+      status.innerHTML = `✅ Done! <strong>${matched}</strong> / ${total} Part Numbers matched. File saved as <strong>${outName}</strong>`;
+      toast(`✅ SAP Location lookup complete: ${matched}/${total} matched`);
+
+    } catch(err) {
+      console.error(err);
+      status.innerHTML = `❌ Error: ${err.message}`;
     }
   };
-  reader.onerror = () => {
-    showAlert('danger', '❌ 파일을 읽을 수 없습니다.');
-    btnConvert.disabled    = false;
-    progWrap.style.display = 'none';
-  };
-  reader.readAsArrayBuffer(selectedFile);
+  reader.readAsArrayBuffer(file);
+  // 인풋 초기화 (같은 파일 재업로드 가능하도록)
+  document.getElementById('sap-file-input').value = '';
 }
 
-function showAlert(type, msg) {
-  alertBox.className     = 'alert alert-' + type;
-  alertBox.textContent   = msg;
-  alertBox.style.display = 'block';
+// EXCEL EXPORT
+// ==============================
+function exportHistoryExcel() {
+  const start   = document.getElementById('hist-start').value;
+  const end     = document.getElementById('hist-end').value;
+  const type    = document.getElementById('hist-type').value;
+  const product = document.getElementById('hist-product').value.toLowerCase();
+
+  let rows = [...transactions];
+  if (start)       rows = rows.filter(t => t.date >= start);
+  if (end)         rows = rows.filter(t => t.date <= end);
+  if (type!=='all') rows = rows.filter(t => t.type === type);
+  if (product)     rows = rows.filter(t =>
+    (t.pn||'').toLowerCase().includes(product) ||
+    (t.desc||t.productName||'').toLowerCase().includes(product)
+  );
+  rows.sort((a,b) => b.id - a.id);
+
+  if (!rows.length) { toast('⚠️ No records to export. Please search first.'); return; }
+
+  const data = [
+    ['No.', 'Date/Time', 'Type', 'Part Number', 'Description', 'Qty', 'Unit', 'Location', 'Customer', 'Manager', 'LOT', 'Remarks']
+  ];
+  rows.forEach((t, i) => {
+    data.push([
+      rows.length - i,
+      t.datetime || t.date,
+      t.type === '입고' ? 'Inbound' : 'Outbound',
+      t.pn || t.productCode || '',
+      t.desc || t.productName || '',
+      t.qty,
+      t.unit || 'EA',
+      t.location || t.dest || '',
+      t.customer || '',
+      t.manager || '',
+      t.lot || '',
+      t.note || ''
+    ]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  // 컬럼 너비 설정
+  ws['!cols'] = [
+    {wch:6},{wch:18},{wch:10},{wch:18},{wch:30},
+    {wch:8},{wch:6},{wch:12},{wch:16},{wch:10},{wch:12},{wch:20}
+  ];
+  // 헤더 행 스타일 (굵게)
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Transaction History');
+
+  const today = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `TransactionHistory_${today}.xlsx`);
+  toast(`✅ Exported ${rows.length} records to Excel`);
 }
+
+function exportInventoryExcel() {
+  const seen = new Map();
+  transactions.forEach(t => {
+    const key = `${t.pn}__${t.location}`;
+    if (!seen.has(key)) {
+      const prod = products.find(p => (p.pn||p.code) === t.pn) || {};
+      seen.set(key, {
+        pn: t.pn,
+        desc: t.desc || prod.desc || prod.name || '',
+        location: t.location || '-',
+        unit: t.unit || prod.unit || 'EA',
+        category: prod.category || '',
+        minStock: Number(prod.minStock) || 0,
+        customer: pnCustomer[t.pn] || ''
+      });
+    }
+  });
+
+  const rows = Array.from(seen.values()).map(item => ({
+    ...item,
+    stock: getStockByLocation(item.pn, item.location)
+  })).filter(r => r.stock > 0);
+
+  if (!rows.length) { toast('⚠️ No inventory data to export.'); return; }
+
+  const data = [
+    ['Part Number', 'Description', 'Batch No.', 'Customer', 'Category', 'Location', 'Stock', 'Unit', 'Min Stock', 'Status']
+  ];
+  rows.forEach(r => {
+    let status = r.stock === 0 ? 'Out of Stock' : r.stock < r.minStock ? 'Low Stock' : 'Normal';
+    const lotText = r.lots && r.lots.size > 0 ? [...r.lots].join(', ') : '';
+    data.push([r.pn, r.desc, lotText, r.customer, r.category, r.location, r.stock, r.unit, r.minStock, status]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [
+    {wch:18},{wch:30},{wch:16},{wch:12},{wch:12},
+    {wch:8},{wch:6},{wch:10},{wch:12}
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Inventory');
+
+  const today = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `Inventory_${today}.xlsx`);
+  toast(`✅ Exported ${rows.length} items to Excel`);
+}
+
+function clearHistSearch() {
+  ['hist-start','hist-end','hist-product'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('hist-type').value='all';
+  document.getElementById('hist-tbody').innerHTML='<tr><td colspan="9"><div class="empty-state"><div class="icon">🔍</div>Set search conditions and click Search</div></td></tr>';
+  document.getElementById('hist-count').textContent='';
+}
+
+// ==============================
+// PRODUCTS
+// ==============================
+function registerProduct() {
+  const pn = document.getElementById('prod-pn').value.trim();
+  if (!pn) { toast('⚠️ Part Number is required'); return; }
+  if (products.find(p=>p.pn===pn||p.code===pn)) { toast('⚠️ Part Number already exists'); return; }
+  const desc = pnMap[pn] || document.getElementById('prod-desc-field').value || '';
+  products.push({
+    pn, code:pn,
+    name: desc, desc,
+    category: document.getElementById('prod-category').value,
+    unit: document.getElementById('prod-unit').value||'EA',
+    minStock: parseInt(document.getElementById('prod-min').value)||10,
+    location: document.getElementById('prod-location').value,
+  });
+  saveAll();
+  toast(`✅ Product registered: ${pn}`);
+  clearProdForm();
+  renderProducts();
+}
+function deleteProduct(pn) {
+  if (!confirm(`Delete product [${pn}]? / 確定刪除？`)) return;
+  products = products.filter(p=>p.pn!==pn && p.code!==pn);
+  saveAll(); renderProducts(); toast('🗑️ Deleted / 已刪除');
+}
+function renderProducts() {
+  const tbody = document.getElementById('prod-tbody');
+  if (!products.length) { tbody.innerHTML='<tr><td colspan="7"><div class="empty-state"><div class="icon">📦</div>No registered products</div></td></tr>'; return; }
+  tbody.innerHTML=products.map(p=>`
+    <tr><td><strong>${p.pn||p.code}</strong></td><td style="font-size:0.85rem">${p.desc||p.name||'-'}</td>
+    <td>${p.category||'-'}</td><td>${p.unit||'EA'}</td><td>${p.minStock||0}</td>
+    <td>${p.location||'-'}</td>
+    <td><button class="btn btn-danger" onclick="deleteProduct('${p.pn||p.code}')">Delete</button></td></tr>`).join('');
+}
+function clearProdForm() {
+  ['prod-pn','prod-desc-field','prod-category'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('prod-unit').value='EA';
+  document.getElementById('prod-min').value='10';
+  document.getElementById('prod-location').value='';
+  document.getElementById('prod-pn-list').style.display='none';
+}
+
+// ==============================
+// PART NUMBER MANAGEMENT
+// ==============================
+function renderPNMgmt() {
+  document.getElementById('pn-total-count').textContent = Object.keys(pnMap).length;
+  const uniqueCustomers = [...new Set(Object.values(pnCustomer).filter(Boolean))];
+  document.getElementById('pn-customer-count').textContent = uniqueCustomers.length;
+  document.getElementById('pn-last-update').textContent = pnLastUpdate;
+  // Populate customer filter dropdown
+  const sel = document.getElementById('pn-customer-filter');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">All Customers / 全部客戶</option>' +
+    uniqueCustomers.sort().map(c=>`<option value="${c}">${c}</option>`).join('');
+  if (prev) sel.value = prev;
+  renderPNList();
+}
+function renderPNList() {
+  const search = (document.getElementById('pn-search').value||'').toLowerCase();
+  const custFilter = (document.getElementById('pn-customer-filter')||{}).value || '';
+  const allPNs = Object.entries(pnMap);
+  let filtered = allPNs;
+  if (search) {
+    filtered = filtered.filter(([pn,desc]) => {
+      const cust = (pnCustomer[pn]||'').toLowerCase();
+      return pn.toLowerCase().includes(search) || desc.toLowerCase().includes(search) || cust.includes(search);
+    });
+  }
+  if (custFilter) {
+    filtered = filtered.filter(([pn]) => (pnCustomer[pn]||'') === custFilter);
+  }
+  document.getElementById('pn-list-count').textContent = `Showing ${filtered.length} of ${allPNs.length} total`;
+  const tbody = document.getElementById('pn-list-tbody');
+  if (!filtered.length) { tbody.innerHTML='<tr><td colspan="5"><div class="empty-state"><div class="icon">🔍</div>No search results found</div></td></tr>'; return; }
+  const escQ = s => s.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  tbody.innerHTML = filtered.slice(0,200).map(([pn,desc],i) => {
+    const cust = pnCustomer[pn] || '';
+    const safe = escQ(pn);
+    return `<tr>
+      <td>${i+1}</td>
+      <td><strong>${pn}</strong></td>
+      <td style="font-size:0.85rem">${desc}</td>
+      <td><span style="font-size:0.83rem; color:#2d6a9f; font-weight:600;">${cust || '<span style="color:#ccc">-</span>'}</span></td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-warning" onclick="openPNEditModal('${safe}')">Edit</button>
+        <button class="btn btn-danger" onclick="deletePN('${safe}')">Delete</button>
+      </td></tr>`;
+  }).join('');
+  if (filtered.length>200) {
+    const extra = document.createElement('tr');
+    extra.innerHTML=`<td colspan="5" style="text-align:center; color:#aaa; padding:10px;">... Narrow search to see more (${filtered.length-200} more)</td>`;
+    tbody.appendChild(extra);
+  }
+}
+function addSinglePN() {
+  const pn = document.getElementById('new-pn').value.trim();
+  const desc = document.getElementById('new-desc').value.trim();
+  const customer = document.getElementById('new-customer').value.trim();
+  if (!pn||!desc) { toast('⚠️ Please enter Part Number and Description'); return; }
+  const isNew = !pnMap[pn];
+  pnMap[pn] = desc;
+  pnCustomer[pn] = customer;
+  pnLastUpdate = getNow() + ' (individual add)';
+  saveAll();
+  toast(isNew ? `✅ Added: [${pn}]` : `✅ Updated: [${pn}]`);
+  clearNewPNForm();
+  renderPNMgmt();
+}
+function clearNewPNForm() {
+  ['new-pn','new-desc','new-customer'].forEach(id=>document.getElementById(id).value='');
+}
+function openPNEditModal(pn) {
+  document.getElementById('pnEditPN').textContent = pn;
+  document.getElementById('pnEditDesc').value = pnMap[pn] || '';
+  document.getElementById('pnEditCustomer').value = pnCustomer[pn] || '';
+  document.getElementById('pnEditCustomer-list').style.display='none';
+  document.getElementById('pnEditModal').classList.add('show');
+  document.getElementById('pnEditDesc').focus();
+}
+function closePNEditModal() {
+  document.getElementById('pnEditModal').classList.remove('show');
+}
+function savePNEdit() {
+  const pn = document.getElementById('pnEditPN').textContent;
+  const desc = document.getElementById('pnEditDesc').value.trim();
+  const customer = document.getElementById('pnEditCustomer').value.trim();
+  if (!desc) { toast('⚠️ Please enter Description'); return; }
+  pnMap[pn] = desc;
+  pnCustomer[pn] = customer;
+  pnLastUpdate = getNow() + ' (edit)';
+  saveAll();
+  toast(`✅ Updated: ${pn}`);
+  closePNEditModal();
+  renderPNMgmt();
+}
+// Edit modal customer autocomplete
+let editCustACHL = -1, editCustACResults = [];
+function onEditCustomerInput() {
+  const input = document.getElementById('pnEditCustomer');
+  const list = document.getElementById('pnEditCustomer-list');
+  const val = (input.value||'').toUpperCase();
+  editCustACHL = -1;
+  const allC = [...new Set(Object.values(pnCustomer).filter(Boolean))].sort();
+  const results = val
+    ? [...allC.filter(c=>c.toUpperCase().startsWith(val)), ...allC.filter(c=>!c.toUpperCase().startsWith(val)&&c.toUpperCase().includes(val))].slice(0,15)
+    : allC.slice(0,15);
+  editCustACResults = results;
+  if (!results.length) { list.style.display='none'; return; }
+  list.innerHTML = results.map((c,i)=>`<div class="ac-item" onmousedown="selectEditCustomer('${c.replace(/'/g,"\'")}');event.preventDefault();" onmouseover="editCustACHL=${i};document.querySelectorAll('#pnEditCustomer-list .ac-item').forEach((el,j)=>el.classList.toggle('active',j===${i}))"><div class="pn">${c}</div></div>`).join('');
+  list.style.display='block';
+}
+function selectEditCustomer(c) {
+  document.getElementById('pnEditCustomer').value = c;
+  document.getElementById('pnEditCustomer-list').style.display='none';
+}
+function onEditCustomerKeyDown(e) {
+  const list = document.getElementById('pnEditCustomer-list');
+  if (list.style.display==='none') return;
+  const items = list.querySelectorAll('.ac-item');
+  if (e.key==='ArrowDown') { e.preventDefault(); editCustACHL=Math.min(editCustACHL+1,items.length-1); items.forEach((el,i)=>el.classList.toggle('active',i===editCustACHL)); }
+  else if (e.key==='ArrowUp') { e.preventDefault(); editCustACHL=Math.max(editCustACHL-1,0); items.forEach((el,i)=>el.classList.toggle('active',i===editCustACHL)); }
+  else if ((e.key==='Enter'||e.key==='Tab') && editCustACHL>=0 && editCustACResults[editCustACHL]) { e.preventDefault(); selectEditCustomer(editCustACResults[editCustACHL]); }
+  else if (e.key==='Escape') list.style.display='none';
+  else if (e.key==='Enter') { e.preventDefault(); savePNEdit(); }
+}
+function deletePN(pn) {
+  if (!confirm(`Delete Part Number [${pn}]? / 確定刪除？`)) return;
+  delete pnMap[pn];
+  delete pnCustomer[pn];
+  pnLastUpdate = getNow() + ' (delete)';
+  saveAll();
+  toast(`🗑️ Deleted: [${pn}]`);
+  renderPNMgmt();
+}
+function importCSVPN() {
+  const text = document.getElementById('pn-paste-area').value.trim();
+  if (!text) { toast('⚠️ Please paste CSV data'); return; }
+  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+  let added=0, updated=0, errors=0;
+  const firstLine = lines[0].toLowerCase();
+  const startIdx = (firstLine.includes('part') || firstLine.includes('description')) ? 1 : 0;
+  // Detect column positions from header (if present)
+  let pnIdx=0, descIdx=1, custIdx=2;
+  if (startIdx===1) {
+    const headers = lines[0].split(',').map(h=>h.toLowerCase().replace(/["']/g,'').trim());
+    pnIdx = headers.findIndex(h=>h.includes('part'));
+    descIdx = headers.findIndex(h=>h.includes('desc'));
+    const ci = headers.findIndex(h=>h.includes('customer')||(h.includes('고객')||h.includes('customer')));
+    custIdx = ci>=0 ? ci : 2;
+    if (pnIdx<0) pnIdx=0;
+    if (descIdx<0) descIdx=1;
+  }
+  for (let i=startIdx; i<lines.length; i++) {
+    // Handle quoted CSV
+    const parts = lines[i].match(/(".*?"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g) || lines[i].split(',');
+    const clean = parts.map(p=>p.replace(/^"|"$/g,'').trim());
+    const pn = clean[pnIdx] || '';
+    const desc = clean[descIdx] || '';
+    const cust = clean[custIdx] || '';
+    if (!pn || !desc) { errors++; continue; }
+    if (pnMap[pn]) updated++; else added++;
+    pnMap[pn] = desc;
+    if (cust) pnCustomer[pn] = cust;
+  }
+  pnLastUpdate = getNow() + ` (CSV import: +${added} added, ${updated} updated)`;
+  saveAll();
+  toast(`✅ Added: ${added}, Updated: ${updated}, Errors: ${errors}`);
+  document.getElementById('pn-paste-area').value='';
+  renderPNMgmt();
+}
+
+function importExcelPN(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  toast('⏳ Reading file...');
+  // Read as binary using FileReader
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      // Parse XLSX using basic approach (SheetJS not available, use CSV fallback)
+      toast('⚠️ Direct Excel parsing not supported. Please use CSV export and paste.');
+    } catch(err) {
+      toast('❌ File read error: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  event.target.value='';
+}
+
+function exportPNasCSV() {
+  const rows = Object.entries(pnMap);
+  const csv = 'Part No,Description,Customer\n' + rows.map(([pn,desc])=>{
+    const cust = pnCustomer[pn]||'';
+    return `"${pn}","${desc.replace(/"/g,'""')}","${cust.replace(/"/g,'""')}"`;
+  }).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download='PartNumber_Customer_list.csv'; a.click();
+  URL.revokeObjectURL(url);
+  toast('📥 CSV exported (Part No + Description + Customer)');
+}
+
+// ==============================
+// DASHBOARD
+// ==============================
+function renderDashboard() {
+  const today = getToday();
+  const todayIn = transactions.filter(t=>t.type==='입고'&&t.date===today);
+  const todayOut = transactions.filter(t=>t.type==='출고'&&t.date===today);
+  const lowStock = products.filter(p=>{const s=getStock(p.pn||p.code);return s<(p.minStock||0);}).length;
+  document.getElementById('d-total-pn').textContent = Object.keys(pnMap).length;
+  document.getElementById('d-today-in').textContent = todayIn.length;
+  document.getElementById('d-today-out').textContent = todayOut.length;
+  document.getElementById('d-low-stock').textContent = lowStock;
+  const recent = transactions.slice(-8).reverse();
+  const tbody = document.getElementById('recent-tbody');
+  if (!recent.length) { tbody.innerHTML='<tr><td colspan="6"><div class="empty-state"><div class="icon">📭</div>No records / 無記錄</div></td></tr>'; return; }
+  tbody.innerHTML=recent.map(t=>`
+    <tr><td>${t.datetime}</td>
+    <td><span class="badge ${t.type==='입고'?'badge-in':'badge-out'}">${t.type==='입고'?'Inbound':'Outbound'}</span></td>
+    <td><strong>${t.pn||t.productCode||'-'}</strong></td>
+    <td style="font-size:0.82rem">${t.desc||t.productName||'-'}</td>
+    <td><strong>${t.qty}</strong> ${t.unit||''}</td>
+    <td>${t.manager||'-'}</td></tr>`).join('');
+}
+
+// ==============================
+// CLOCK
+// ==============================
+function updateClock() { document.getElementById('headerTime').textContent = new Date().toLocaleString('en-US'); }
+setInterval(updateClock, 1000);
+updateClock();
+
+// ==============================
+// INIT
+// ==============================
+document.addEventListener('DOMContentLoaded', ()=>{
+  // Position 드롭다운 옵션 채우기 (01~25)
+  ['in-loc-pos','out-loc-pos'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = POS_OPTIONS;
+  });
+
+  document.getElementById('in-date').value = getToday();
+  document.getElementById('out-date').value = getToday();
+  const d = new Date();
+  document.getElementById('hist-end').value = getToday();
+  d.setDate(d.getDate()-30);
+  document.getElementById('hist-start').value = d.toISOString().split('T')[0];
+
+  if (!isFirebaseConfigured()) {
+    document.getElementById('firebaseSetupModal').classList.add('show');
+  }
+
+  initFirebase(() => {
+    refreshLocationSelects();
+    renderDashboard();
+    renderProducts();
+  });
+
+  // Drag-drop for Excel import
+  const dropArea = document.getElementById('importDropArea');
+  if (dropArea) {
+    dropArea.addEventListener('dragover', e=>{e.preventDefault(); dropArea.style.borderColor='#2d6a9f';});
+    dropArea.addEventListener('dragleave', ()=>{dropArea.style.borderColor='#b0c4de';});
+    dropArea.addEventListener('drop', e=>{
+      e.preventDefault(); dropArea.style.borderColor='#b0c4de';
+      const file = e.dataTransfer.files[0];
+      if (file) importExcelPN({target:{files:[file], value:''}});
+    });
+  }
+});
 </script>
+
+<!-- Firebase Setup Modal -->
+<!-- Inventory Reset Modal -->
+<div class="modal-overlay" id="resetModal">
+  <div class="modal-box" style="width:440px;">
+    <h3 style="color:#e74c3c;">⚠️ Initialize Inventory / 初始化庫存</h3>
+    <p style="font-size:0.9rem;color:#555;margin-bottom:12px;">
+      This will permanently delete <strong>all inventory records and transaction history</strong>.<br>
+      This action <strong style="color:#e74c3c;">cannot be undone</strong>.
+    </p>
+    <div style="background:#fff3f3;border:1px solid #e74c3c;border-radius:8px;padding:12px 16px;margin-bottom:18px;">
+      <div style="font-size:0.85rem;color:#c0392b;margin-bottom:8px;font-weight:600;">To confirm, type the admin code below:</div>
+      <input type="text" id="reset-confirm-input" placeholder="Enter admin code"
+             style="width:100%;padding:8px 12px;border:1px solid #e74c3c;border-radius:6px;font-size:0.95rem;box-sizing:border-box;"
+             oninput="document.getElementById('reset-confirm-btn').disabled=this.value!=='070305'">
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="closeResetModal()">Cancel</button>
+      <button class="btn btn-danger" id="reset-confirm-btn" disabled onclick="executeReset()"
+              style="padding:8px 20px;">🗑️ Initialize Now</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="firebaseSetupModal">
+  <div class="modal-box" style="max-width:620px;width:94%;max-height:90vh;overflow-y:auto;">
+    <h3>☁️ Cloud Setup / 雲端設定</h3>
+    <p style="color:#555;font-size:0.88rem;margin:10px 0 16px;">
+      To share data across multiple users and devices, connect Firebase (free).<br>
+      Currently running in <strong>Local Mode</strong> — data is saved only on this device.
+    </p>
+    <div style="background:#f5f8fc;border-radius:8px;padding:16px;margin-bottom:16px;">
+      <div style="font-weight:700;color:#1a2e44;margin-bottom:10px;">📋 Setup Steps / 設定步驟</div>
+      <ol style="margin-left:18px;line-height:2;font-size:0.88rem;color:#333;">
+        <li>Go to <a href="https://console.firebase.google.com" target="_blank" style="color:#2d6a9f;font-weight:600;">console.firebase.google.com</a> and sign in (free Google account)</li>
+        <li>Click <strong>Add project</strong> → Enter project name → Create</li>
+        <li>Click <strong>&lt;/&gt; Web</strong> icon → Register app → Copy the <code>firebaseConfig</code> object</li>
+        <li>In the left menu: <strong>Build → Realtime Database</strong> → Create database → Choose region → <strong>Start in test mode</strong></li>
+        <li>Open this HTML file in a text editor, find <code>FIREBASE_CONFIG</code> near line 600, replace the placeholder values with your copied config</li>
+        <li>Host the file on <a href="https://app.netlify.com/drop" target="_blank" style="color:#2d6a9f;font-weight:600;">app.netlify.com/drop</a> (free — just drag & drop)</li>
+        <li>Share the Netlify URL with your team!</li>
+      </ol>
+    </div>
+    <div style="background:#fff8e1;border-left:4px solid #f0c040;padding:12px;border-radius:0 6px 6px 0;font-size:0.84rem;color:#555;margin-bottom:16px;">
+      <strong>⚠️ Security Note:</strong> "Test mode" allows anyone with the URL to read/write data for 30 days.
+      For production use, add Firebase Authentication rules.
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="document.getElementById('firebaseSetupModal').classList.remove('show')">Use Local Mode</button>
+      <a href="https://console.firebase.google.com" target="_blank" class="btn btn-primary" style="text-decoration:none;">🔗 Open Firebase Console</a>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
